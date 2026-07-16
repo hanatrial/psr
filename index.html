@@ -226,7 +226,7 @@ function fmtRp(n){
   if(n >= 1e3) return "Rp " + (n/1e3).toFixed(0) + " Rb";
   return "Rp " + Math.round(n).toLocaleString('id-ID');
 }
-function gmapsUrl(d){ return "https://www.google.com/maps/search/?api=1&query=" + d.lat + "," + d.lon; }
+function gmapsUrl(d){ return "https://www.google.com/maps/d/viewer?mid=1_8IsynnyWET9ve7EaRRkc9FQMfYlKes&ll=" + d.lat + "%2C" + d.lon + "&z=17"; }
 function radiusFor(omzet){ const r = Math.sqrt(Math.max(omzet,1))/380; return Math.min(Math.max(r,0.9),3.5); }
 
 function buildStats(){
