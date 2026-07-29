@@ -115,15 +115,23 @@
     padding:10px;border-radius:8px;font-size:12.5px;font-weight:700;text-decoration:none}
   .d-link:hover{filter:brightness(1.08)}
 
-  .blitz-box{margin:0 20px 14px;background:linear-gradient(160deg,rgba(255,93,93,.12),rgba(255,180,84,.08));
-    border:1px solid rgba(255,93,93,.35);border-radius:10px;padding:12px 14px}
-  .blitz-title{font-size:12px;font-weight:700;color:#ff8a8a;margin-bottom:8px}
-  .blitz-rows{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-  .blitz-row{display:flex;justify-content:space-between;gap:10px;font-size:11.5px}
-  .blitz-row .l{color:var(--text3)}
-  .blitz-row .v{color:var(--text);font-weight:600;text-align:right}
-  .blitz-insight .l{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:4px}
-  .blitz-insight p{font-size:11.5px;line-height:1.55;color:var(--text2)}
+  .blitz-overlay{display:none;position:fixed;inset:0;background:rgba(6,9,15,.72);backdrop-filter:blur(3px);
+    z-index:100;align-items:center;justify-content:center;padding:24px}
+  .blitz-overlay.show{display:flex}
+  .blitz-modal{position:relative;width:100%;max-width:560px;max-height:82vh;overflow-y:auto;
+    background:linear-gradient(160deg,rgba(255,93,93,.14),rgba(24,32,54,.98) 30%);
+    border:1px solid rgba(255,93,93,.4);border-radius:16px;padding:28px 30px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .blitz-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text2);
+    font-size:26px;line-height:1;cursor:pointer;padding:4px}
+  .blitz-close:hover{color:var(--text)}
+  .blitz-title{font-size:19px;font-weight:700;color:#ff8a8a;margin-bottom:4px;padding-right:24px}
+  .blitz-sub{font-size:13px;color:var(--text2);margin-bottom:18px}
+  .blitz-rows{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .blitz-row{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+  .blitz-row .l{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:3px}
+  .blitz-row .v{font-size:15px;color:var(--text);font-weight:700}
+  .blitz-insight .l{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:6px;font-weight:700}
+  .blitz-insight p{font-size:13.5px;line-height:1.7;color:var(--text2)}
 
   .map-controls{position:absolute;bottom:16px;left:16px;display:flex;flex-direction:column;gap:6px;z-index:5}
   .mc-btn{width:28px;height:28px;background:rgba(18,24,38,.9);border:1px solid var(--border);border-radius:6px;
@@ -185,9 +193,18 @@
         <div class="d-cat" id="dCat">—</div>
       </div>
       <div class="d-metrics" id="dMetrics"></div>
-      <div id="dBlitz"></div>
       <a class="d-link" id="dLink" href="#" target="_blank" rel="noopener">Buka di Google Maps ↗</a>
     </div>
+  </div>
+</div>
+
+<div class="blitz-overlay" id="blitzOverlay">
+  <div class="blitz-modal">
+    <button class="blitz-close" id="blitzClose">&times;</button>
+    <div class="blitz-title" id="bTitle">🔥 Report Blitz HiLo Matcha</div>
+    <div class="blitz-sub" id="bSub"></div>
+    <div class="blitz-rows" id="bRows"></div>
+    <div class="blitz-insight"><span class="l">Insight Lapangan</span><p id="bInsight"></p></div>
   </div>
 </div>
 
@@ -400,33 +417,32 @@ function showDetail(d){
   document.getElementById('dLink').href = gmapsUrl(d);
 
   const blitz = BLITZ[d.kab + '|' + d.pasar];
-  const blitzEl = document.getElementById('dBlitz');
-  if(blitz){
-    const rows = [
-      ['Lokasi', blitz.lokasi],
-      ['Tanggal', blitz.tanggal],
-      ['Personil', blitz.personil],
-      ['Omzet Blitz', blitz.omzet != null ? fmtRp(blitz.omzet) : null],
-      ['Call', blitz.call],
-      ['EC', blitz.ec],
-      ['EC Matcha', blitz.ec_matcha],
-      ['RO Baru', blitz.ro_baru],
-      ['Titik Gagal', blitz.titik_gagal],
-      ['Jumlah Pembeli', blitz.jumlah_pembeli],
-      ['Varian Produk', blitz.varian]
-    ].filter(([,v]) => v !== null && v !== undefined && v !== '');
-    blitzEl.innerHTML = `
-      <div class="blitz-box">
-        <div class="blitz-title">🔥 Report Blitz HiLo Matcha</div>
-        <div class="blitz-rows">
-          ${rows.map(([l,v]) => `<div class="blitz-row"><span class="l">${l}</span><span class="v">${v}</span></div>`).join('')}
-        </div>
-        <div class="blitz-insight"><span class="l">Insight Lapangan</span><p>${blitz.insight}</p></div>
-      </div>`;
-  } else {
-    blitzEl.innerHTML = '';
-  }
+  if(blitz) showBlitzModal(d, blitz);
 }
+
+function showBlitzModal(d, blitz){
+  document.getElementById('bSub').textContent = d.pasar + ' — ' + d.kab;
+  const rows = [
+    ['Lokasi', blitz.lokasi],
+    ['Tanggal', blitz.tanggal],
+    ['Personil', blitz.personil],
+    ['Omzet Blitz', blitz.omzet != null ? fmtRp(blitz.omzet) : null],
+    ['Call', blitz.call],
+    ['EC', blitz.ec],
+    ['EC Matcha', blitz.ec_matcha],
+    ['RO Baru', blitz.ro_baru],
+    ['Titik Gagal', blitz.titik_gagal],
+    ['Jumlah Pembeli', blitz.jumlah_pembeli],
+    ['Varian Produk', blitz.varian]
+  ].filter(([,v]) => v !== null && v !== undefined && v !== '');
+  document.getElementById('bRows').innerHTML = rows.map(([l,v]) => `<div class="blitz-row"><span class="l">${l}</span><span class="v">${v}</span></div>`).join('');
+  document.getElementById('bInsight').textContent = blitz.insight;
+  document.getElementById('blitzOverlay').classList.add('show');
+}
+function closeBlitzModal(){ document.getElementById('blitzOverlay').classList.remove('show'); }
+document.getElementById('blitzClose').addEventListener('click', closeBlitzModal);
+document.getElementById('blitzOverlay').addEventListener('click', (e)=>{ if(e.target.id==='blitzOverlay') closeBlitzModal(); });
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeBlitzModal(); });
 
 function renderBubbles(){
   const filtered = DATA.filter(d => d.kategori===activeCat && (activeKab==='Semua' || d.kab===activeKab));
