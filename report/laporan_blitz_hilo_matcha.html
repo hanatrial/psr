@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Laporan Blitz HiLo Matcha — Wilayah Sulawesi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --paper:#f2f4ec; --paper-card:#fbfbf6; --ink:#20291d; --ink-soft:#57614e; --ink-faint:#8b937d;
+    --accent:#4f7a3d; --accent-deep:#2c4522; --gold:#a97c26; --rust:#a3462e;
+    --line:#d7d9c6; --line-soft:#e6e7d9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#161c14; --paper-card:#1d2419; --ink:#eef0e5; --ink-soft:#aab29c; --ink-faint:#707a63;
+      --accent:#8fbf70; --accent-deep:#c3e0ac; --gold:#d1a34e; --rust:#e08a72;
+      --line:#3a4432; --line-soft:#2a331f;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#161c14; --paper-card:#1d2419; --ink:#eef0e5; --ink-soft:#aab29c; --ink-faint:#707a63;
+    --accent:#8fbf70; --accent-deep:#c3e0ac; --gold:#d1a34e; --rust:#e08a72;
+    --line:#3a4432; --line-soft:#2a331f;
+  }
+  :root[data-theme="light"]{
+    --paper:#f2f4ec; --paper-card:#fbfbf6; --ink:#20291d; --ink-soft:#57614e; --ink-faint:#8b937d;
+    --accent:#4f7a3d; --accent-deep:#2c4522; --gold:#a97c26; --rust:#a3462e;
+    --line:#d7d9c6; --line-soft:#e6e7d9;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-variant-numeric:tabular-nums; line-height:1.5}
+  .sheet{max-width:790px;margin:0 auto;padding:56px 48px 72px}
+
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 10px}
+  h1{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;font-weight:600;
+     font-size:33px;line-height:1.18;margin:0 0 10px;color:var(--ink);text-wrap:balance}
+  .lede{font-size:14.5px;color:var(--ink-soft);max-width:60ch;margin:0}
+
+  .meta-strip{display:flex;flex-wrap:wrap;gap:0;margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}
+  .meta-item{flex:1;min-width:140px;padding-right:18px}
+  .meta-item .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:3px}
+  .meta-item .v{font-size:13.5px;font-weight:600;color:var(--ink)}
+
+  h2.section{font-family:Georgia,"Iowan Old Style",serif;font-size:19px;font-weight:600;
+    color:var(--accent-deep);margin:44px 0 4px;padding-bottom:8px;border-bottom:2px solid var(--accent);
+    display:inline-block}
+  .section-note{font-size:12.5px;color:var(--ink-soft);margin:6px 0 18px;max-width:64ch}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:14px}
+  .kpi{background:var(--paper-card);padding:15px 14px}
+  .kpi .n{font-size:21px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-top:3px}
+  .kpi.accent .n{color:var(--accent-deep)}
+
+  .market{background:var(--paper-card);border:1px solid var(--line);border-radius:12px;
+    padding:22px 24px;margin-top:16px; page-break-inside:avoid; break-inside:avoid}
+  .market-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line-soft);padding-bottom:12px;margin-bottom:14px}
+  .market-name{font-family:Georgia,serif;font-size:17.5px;font-weight:600;color:var(--ink)}
+  .market-region{font-size:11.5px;color:var(--accent-deep);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .market-when{font-size:11px;color:var(--ink-faint)}
+
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:10px;margin-bottom:14px}
+  .stat{border-left:2px solid var(--line);padding-left:10px}
+  .stat .l{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}
+  .stat .v{font-size:15px;font-weight:700;color:var(--ink);margin-top:2px}
+  .stat.missing .v{color:var(--ink-faint);font-weight:500;font-size:12px}
+
+  .insight-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-faint);
+    font-weight:700;margin-bottom:6px}
+  .insight-text{font-size:13px;line-height:1.68;color:var(--ink-soft)}
+
+  .finding{margin-top:16px;padding:16px 20px;background:var(--paper-card);border:1px solid var(--line);
+    border-left:3px solid var(--gold);border-radius:0 10px 10px 0; page-break-inside:avoid; break-inside:avoid}
+  .finding.watch{border-left-color:var(--rust)}
+  .finding-head{font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:5px}
+  .finding-body{font-size:12.5px;line-height:1.65;color:var(--ink-soft)}
+
+  table.simple{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+  table.simple th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--ink-faint);padding:6px 8px;border-bottom:1px solid var(--line)}
+  table.simple td{padding:7px 8px;border-bottom:1px solid var(--line-soft);color:var(--ink)}
+  table.simple td.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.simple tr:last-child td{border-bottom:none;font-weight:700}
+
+  footer{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);
+    font-size:10.5px;color:var(--ink-faint);display:flex;justify-content:space-between}
+
+  .print-hint{position:fixed;top:16px;right:16px;background:var(--accent-deep);color:var(--paper);
+    font-size:11.5px;padding:9px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);
+    cursor:pointer;font-weight:600;border:none}
+  .print-hint:hover{filter:brightness(1.1)}
+
+  @media print{
+    body{background:#fff}
+    .sheet{max-width:none;padding:18px 8px}
+    .print-hint{display:none}
+    .market, .finding{border:1px solid #ccc}
+    h2.section{break-after:avoid}
+  }
+  @media (max-width:640px){
+    .sheet{padding:32px 18px}
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    h1{font-size:26px}
+  }
+</style>
+</head>
+<body>
+<button class="print-hint" onclick="window.print()">🖨 Simpan sebagai PDF</button>
+<div class="sheet">
+
+  <div class="eyebrow">Laporan Internal · Field Activity</div>
+  <h1>Blitz HiLo Matcha — Rekap 6 Titik Pasar Prioritas Tinggi, Sulawesi</h1>
+  <p class="lede">Rangkuman 4 kegiatan blitz penjualan HiLo Matcha di 6 titik pasar kategori Prioritas Tinggi pada dashboard Sebaran Pasar Sulawesi, mencakup Kota Palu, Pinrang, Sidenreng Rappang, Minahasa, dan Poso.</p>
+
+  <div class="meta-strip">
+    <div class="meta-item"><div class="l">Wilayah Tercakup</div><div class="v">4 Kabupaten/Kota</div></div>
+    <div class="meta-item"><div class="l">Titik Pasar</div><div class="v">6 Pasar</div></div>
+    <div class="meta-item"><div class="l">Kegiatan Blitz</div><div class="v">4 Sesi</div></div>
+    <div class="meta-item"><div class="l">Produk Fokus</div><div class="v">HiLo Matcha</div></div>
+  </div>
+
+  <h2 class="section">Ringkasan Total</h2>
+  <p class="section-note">Akumulasi dari 4 sesi blitz. Angka Call / EC / RO Baru / Titik Gagal dihitung hanya dari sesi yang mencatat metrik tersebut (lihat catatan per pasar).</p>
+  <div class="kpi-grid">
+    <div class="kpi accent"><div class="n">Rp 3.321.000</div><div class="l">Total Omzet Blitz</div></div>
+    <div class="kpi"><div class="n">53</div><div class="l">Total Call</div></div>
+    <div class="kpi"><div class="n">39</div><div class="l">Total EC</div></div>
+    <div class="kpi"><div class="n">15</div><div class="l">Total RO Baru</div></div>
+    <div class="kpi"><div class="n">8</div><div class="l">Titik Gagal</div></div>
+  </div>
+
+  <h2 class="section">Detail per Pasar</h2>
+  <p class="section-note">Diurutkan sesuai laporan yang diterima. Metrik yang tidak dicatat di laporan asli ditandai "tidak tercatat".</p>
+
+  <div class="market">
+    <div class="market-head">
+      <div>
+        <div class="market-name">Pasar Masomba &amp; Pasar Inpres Manonda</div>
+        <div class="market-region">Kota Palu · Tim Palu</div>
+      </div>
+      <div class="market-when">Radius ±1 km · Blitz 3 jam</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="l">Omzet</div><div class="v">Rp 760.000</div></div>
+      <div class="stat"><div class="l">Call</div><div class="v">22</div></div>
+      <div class="stat"><div class="l">EC</div><div class="v">15</div></div>
+      <div class="stat"><div class="l">RO Baru</div><div class="v">3</div></div>
+      <div class="stat"><div class="l">Titik Gagal</div><div class="v">4</div></div>
+    </div>
+    <div class="insight-label">Insight Lapangan</div>
+    <p class="insight-text">Respons konsumen sangat positif — rata-rata pengambilan produk mencapai 2 renteng per titik, bahkan ada konsumen yang membeli hingga 10 renteng dalam satu transaksi (5 karton terjual dalam 3 jam). Sejak kehadiran HiLo Matcha, minat konsumen terhadap varian matcha meningkat, dan beberapa pedagang menyampaikan penjualan Chocolatos Matcha mulai tergeser.</p>
+  </div>
+
+  <div class="market">
+    <div class="market-head">
+      <div>
+        <div class="market-name">Pasar Sentral Pinrang &amp; Pasar Pangkajene</div>
+        <div class="market-region">Pinrang &amp; Sidenreng Rappang</div>
+      </div>
+      <div class="market-when">Senin, 27 Juli 2026 · Personil 3 orang</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="l">Omzet</div><div class="v">Rp 1.140.000</div></div>
+      <div class="stat"><div class="l">Matcha (35 Rtg)</div><div class="v">Rp 665.000</div></div>
+      <div class="stat"><div class="l">Varian Lain</div><div class="v">Rp 475.000</div></div>
+      <div class="stat"><div class="l">Pembeli</div><div class="v">25 orang + 15 kedai</div></div>
+      <div class="stat missing"><div class="l">Call / EC / RO Baru</div><div class="v">tidak tercatat</div></div>
+    </div>
+    <div class="insight-label">Insight Lapangan</div>
+    <p class="insight-text">Respons sangat positif di kedua pasar dan beberapa kedai — rata-rata pengambilan 2 renteng per titik, puncaknya 6 renteng dalam satu transaksi. Konsumen berinisiatif mencoba dan membandingkan beberapa varian matcha; penjualan Chocolatos Matcha mulai tergeser karena rasa matcha HiLo dinilai lebih keluar, terutama saat disandingkan dengan susu atau creamer.</p>
+  </div>
+
+  <div class="market">
+    <div class="market-head">
+      <div>
+        <div class="market-name">Pasar Tondano</div>
+        <div class="market-region">Minahasa · Tim Manado</div>
+      </div>
+      <div class="market-when">&nbsp;</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="l">Omzet</div><div class="v">Rp 980.000</div></div>
+      <div class="stat"><div class="l">Call</div><div class="v">21</div></div>
+      <div class="stat"><div class="l">EC Total (Matcha)</div><div class="v">16 (12)</div></div>
+      <div class="stat"><div class="l">RO Baru</div><div class="v">6</div></div>
+      <div class="stat"><div class="l">Titik Gagal</div><div class="v">4</div></div>
+    </div>
+    <div class="insight-label">Insight Lapangan</div>
+    <p class="insight-text">Respons positif, mayoritas transaksi dari end customer, ditambah beberapa rumah makan dan kios kecil. Sebagian konsumen masih perlu dipancing dengan gimmick gelas. Rata-rata pengambilan 1–2 renteng per titik. Omzet matcha Rp 480.000 dari total Rp 980.000, sisanya varian HiLo lain.</p>
+  </div>
+
+  <div class="market">
+    <div class="market-head">
+      <div>
+        <div class="market-name">Taman RSUD Kota Poso</div>
+        <div class="market-region">Poso</div>
+      </div>
+      <div class="market-when">Pemilik kedai tidak ada</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="l">Omzet</div><div class="v">Rp 441.000</div></div>
+      <div class="stat"><div class="l">Call</div><div class="v">10</div></div>
+      <div class="stat"><div class="l">EC</div><div class="v">8</div></div>
+      <div class="stat"><div class="l">RO Baru</div><div class="v">6</div></div>
+      <div class="stat missing"><div class="l">Titik Gagal</div><div class="v">tidak tercatat</div></div>
+    </div>
+    <div class="insight-label">Insight Lapangan</div>
+    <p class="insight-text">Matcha mudah diterima dengan dikaitkan sebagai "minuman viral"; harga dipersepsikan lebih murah dari kompetitor (Mountea, Chocolatos). Dropsize masih kecil karena konsumen masih coba-coba dulu.</p>
+  </div>
+
+  <h2 class="section">Ringkasan Angka</h2>
+  <table class="simple">
+    <tr><th>Pasar</th><th>Wilayah</th><th class="num">Omzet</th><th class="num">Call</th><th class="num">EC</th><th class="num">RO Baru</th><th class="num">Titik Gagal</th></tr>
+    <tr><td>Masomba &amp; Inpres Manonda</td><td>Kota Palu</td><td class="num">Rp 760.000</td><td class="num">22</td><td class="num">15</td><td class="num">3</td><td class="num">4</td></tr>
+    <tr><td>Sentral Pinrang &amp; Pangkajene</td><td>Pinrang / Sidrap</td><td class="num">Rp 1.140.000</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+    <tr><td>Tondano</td><td>Minahasa</td><td class="num">Rp 980.000</td><td class="num">21</td><td class="num">16</td><td class="num">6</td><td class="num">4</td></tr>
+    <tr><td>Taman RSUD Kota Poso</td><td>Poso</td><td class="num">Rp 441.000</td><td class="num">10</td><td class="num">8</td><td class="num">6</td><td class="num">—</td></tr>
+    <tr><td>Total</td><td>4 kegiatan</td><td class="num">Rp 3.321.000</td><td class="num">53</td><td class="num">39</td><td class="num">15</td><td class="num">8</td></tr>
+  </table>
+
+  <h2 class="section">Analisa Tambahan</h2>
+  <p class="section-note">Pembacaan silang atas keempat laporan — di luar angka yang sudah dilaporkan masing-masing tim.</p>
+
+  <div class="finding">
+    <div class="finding-head">Poso: volume kecil, konversi paling efisien</div>
+    <div class="finding-body">Dengan call paling sedikit (10) di antara semua sesi, Poso justru mencatat rasio call-ke-EC tertinggi (80%) dan EC-ke-RO Baru tertinggi (75% — 6 dari 8 EC langsung jadi outlet baru). Sebagai perbandingan, rasio EC-ke-RO Baru di Palu hanya 20% dan Tondano 37,5%. Ini sinyal pasar yang under-visited tapi sangat responsif — kandidat kuat untuk kunjungan lanjutan, meski tanpa pemilik kedai tetap di titik ini.</div>
+  </div>
+
+  <div class="finding watch">
+    <div class="finding-head">Kanibalisasi Chocolatos Matcha bukan kejadian lokal</div>
+    <div class="finding-body">Pergeseran preferensi dari Chocolatos Matcha ke HiLo Matcha dilaporkan secara independen oleh dua tim di dua provinsi berbeda (Palu dan Pinrang), dengan alasan yang konsisten: rasa matcha HiLo dinilai "lebih keluar", terutama saat disandingkan susu/creamer. Karena munculnya berulang dan tidak saling terkait, ini lebih terlihat sebagai sinyal preferensi pasar yang nyata dibanding kebetulan satu lokasi — relevan untuk dibawa ke pembahasan portofolio/positioning, bukan sekadar catatan lapangan.</div>
+  </div>
+
+  <div class="finding watch">
+    <div class="finding-head">Titik gagal identik di dua wilayah berjauhan</div>
+    <div class="finding-body">Palu dan Tondano — dua pulau berbeda, dua tim berbeda — sama-sama mencatat 4 titik gagal (belum sempat diambil). Kesamaan angka di lokasi yang tidak berhubungan mengindikasikan keterbatasan sistemik pada durasi/kapasitas blitz per sesi, bukan hambatan spesifik satu pasar. Perlu dicek apakah target jumlah titik per sesi blitz sudah realistis terhadap waktu yang tersedia.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head">Gap pencatatan di sesi Pinrang &amp; Pangkajene</div>
+    <div class="finding-body">Sesi ini mencatat omzet tertinggi dari seluruh blitz (Rp 1.140.000) tapi tidak melaporkan Call, EC, RO Baru, maupun titik gagal — sehingga efisiensinya tidak bisa dibandingkan langsung dengan 3 sesi lain. Standarisasi format laporan (seperti format ringkas yang terakhir dipakai di Poso) akan membuat benchmark lintas-tim lebih adil ke depannya.</div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-head">Baseline kasar untuk target blitz berikutnya</div>
+    <div class="finding-body">Rata-rata omzet per sesi blitz (durasi ±3 jam) berada di kisaran Rp 830.250, dan rata-rata rasio call-ke-EC pada 3 sesi yang tercatat lengkap adalah ±75%. Angka ini bisa dipakai sebagai patokan awal saat menyusun target untuk blitz di titik Prioritas Tinggi lainnya, sambil tetap memperhitungkan karakter pasar yang berbeda-beda.</div>
+  </div>
+
+  <footer>
+    <span>Dashboard Sebaran Pasar Sulawesi — hanatrial.github.io/psr</span>
+    <span id="genDate"></span>
+  </footer>
+</div>
+<script>
+document.getElementById('genDate').textContent = 'Dibuat ' + new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+</script>
+</body>
+</html>

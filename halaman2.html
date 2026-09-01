@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Halaman 2 — Serbu Pasar Sulawesi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0b0f17; --surface:#121826; --card:#182036; --border:#242e46;
+    --text:#e9edf5; --text2:#8d97b3; --text3:#525d78;
+  }
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+  .wrap{max-width:640px;margin:0 auto;padding:40px 20px}
+
+  .page-toggle{display:flex;background:var(--card);border:1px solid var(--border);border-radius:9px;
+    padding:3px;gap:3px;margin-bottom:28px}
+  .pt-btn{flex:1;text-align:center;padding:9px 10px;border-radius:6px;font-size:12.5px;font-weight:600;
+    color:var(--text3);text-decoration:none;transition:background .15s,color .15s}
+  .pt-btn:hover{color:var(--text2)}
+  .pt-btn.active{background:#ffb454;color:#1a1006}
+
+  .empty{border:1px dashed var(--border);border-radius:14px;padding:60px 24px;text-align:center;margin-top:20px}
+  .empty h1{font-size:18px;font-weight:700;margin-bottom:8px;font-family:Georgia,serif}
+  .empty p{font-size:13px;color:var(--text3);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="page-toggle">
+    <a href="index.html" class="pt-btn">Peta Sebaran</a>
+    <a href="halaman2.html" class="pt-btn active">Halaman 2</a>
+  </div>
+
+  <div class="empty">
+    <h1>Halaman ini masih kosong</h1>
+    <p>Belum ada konten di sini. Kasih tahu mau diisi apa, nanti dibangun.</p>
+  </div>
+</div>
+</body>
+</html>
