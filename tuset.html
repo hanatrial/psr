@@ -906,6 +906,14 @@
   const pdfStatus = document.getElementById('pdfStatus');
 
   pdfBtn.addEventListener('click', async () => {
+    const inputPw = window.prompt('Masukkan password untuk download PDF:');
+    if(inputPw === null) return; // dibatalkan
+    if(inputPw !== 'pdf'){
+      pdfStatus.textContent = 'Password salah.';
+      setTimeout(() => pdfStatus.textContent = '', 3000);
+      return;
+    }
+
     const areaFilter = filterArea.value;
     const mdsFilter = filterMds.value;
     const reportMap = new Map();
@@ -924,11 +932,7 @@
 
     pdfBtn.disabled = true;
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({
-      unit: 'mm',
-      format: 'a4',
-      encryption: { userPassword: 'pdf', ownerPassword: 'pdf' }
-    });
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 15;
