@@ -60,6 +60,13 @@
   .totals-bar .t.ok .n{color:var(--ok)}
   .totals-bar .t.pending .n{color:var(--accent)}
 
+  .pdf-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .pdf-btn{padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);
+    color:var(--text);font-size:12.5px;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s}
+  .pdf-btn:hover{border-color:var(--accent)}
+  .pdf-btn:disabled{opacity:.5;cursor:not-allowed}
+  .pdf-status{font-size:11.5px;color:var(--text3)}
+
   .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
   table.report-table{width:100%;border-collapse:collapse;font-size:12.5px}
   table.report-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
@@ -148,6 +155,10 @@
     </div>
   </div>
   <div class="totals-bar" id="totalsBar"></div>
+  <div class="pdf-bar">
+    <button type="button" class="pdf-btn" id="pdfBtn">📄 Download PDF (kedai lengkap)</button>
+    <span class="pdf-status" id="pdfStatus"></span>
+  </div>
   <div class="table-wrap">
     <table class="report-table">
       <thead>
@@ -164,6 +175,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
@@ -778,6 +790,89 @@
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
+
+  // ---- Export PDF: 1 halaman per kedai lengkap (KTP + Foto Penyerahan, masing-masing setengah halaman) ----
+  function loadImage(url){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  function drawImageFit(doc, img, x, y, boxW, boxH){
+    const ratio = Math.min(boxW / img.width, boxH / img.height);
+    const w = img.width * ratio, h = img.height * ratio;
+    const dx = x + (boxW - w) / 2, dy = y + (boxH - h) / 2;
+    doc.addImage(img, 'JPEG', dx, dy, w, h);
+  }
+
+  const pdfBtn = document.getElementById('pdfBtn');
+  const pdfStatus = document.getElementById('pdfStatus');
+
+  pdfBtn.addEventListener('click', async () => {
+    const areaFilter = filterArea.value;
+    const mdsFilter = filterMds.value;
+    const reportMap = new Map();
+    lastDocs.forEach(d => reportMap.set(d.mds + '||' + d.kedai, d));
+
+    const complete = MASTER_LIST.filter(r =>
+      (!areaFilter || r.area === areaFilter) && (!mdsFilter || r.mds === mdsFilter)
+    ).map(r => ({ r, d: reportMap.get(r.mds + '||' + r.kedai) }))
+     .filter(({ d }) => d && d.foto_ktp && d.foto_penyerahan);
+
+    if(!complete.length){
+      pdfStatus.textContent = 'Tidak ada kedai lengkap untuk filter saat ini.';
+      setTimeout(() => pdfStatus.textContent = '', 4000);
+      return;
+    }
+
+    pdfBtn.disabled = true;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentTop = margin + 16;
+    const contentH = pageH - contentTop - margin;
+    const halfH = (contentH - 10) / 2;
+    const imgW = pageW - margin * 2;
+
+    for(let i = 0; i < complete.length; i++){
+      const { r, d } = complete[i];
+      pdfStatus.textContent = `Memproses ${i + 1} / ${complete.length}…`;
+      if(i > 0) doc.addPage();
+
+      doc.setFontSize(14);
+      doc.setTextColor(20);
+      doc.text(r.kedai, margin, margin + 2);
+      doc.setFontSize(10);
+      doc.setTextColor(120);
+      doc.text(`MDS: ${r.mds}  ·  Area: ${r.area}`, margin, margin + 8);
+      doc.setTextColor(20);
+
+      try {
+        const [ktpImg, penyImg] = await Promise.all([loadImage(d.foto_ktp), loadImage(d.foto_penyerahan)]);
+        doc.setFontSize(9);
+        doc.text('Foto KTP', margin, contentTop);
+        drawImageFit(doc, ktpImg, margin, contentTop + 3, imgW, halfH - 3);
+
+        const secondTop = contentTop + halfH + 8;
+        doc.text('Foto Penyerahan', margin, secondTop);
+        drawImageFit(doc, penyImg, margin, secondTop + 3, imgW, halfH - 3);
+      } catch (err) {
+        doc.setFontSize(10);
+        doc.text('Gagal memuat foto untuk kedai ini.', margin, contentTop + 10);
+      }
+    }
+
+    doc.save('report-tukar-sachet.pdf');
+    pdfStatus.textContent = `✓ ${complete.length} kedai berhasil diekspor.`;
+    pdfBtn.disabled = false;
+    setTimeout(() => pdfStatus.textContent = '', 5000);
+  });
 </script>
 </body>
 </html>
