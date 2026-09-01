@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.keys().hasAll(['area', 'mds', 'kedai', 'foto_ktp', 'foto_penyerahan', 'created_at']) &&
+        request.resource.data.area is string &&
+        request.resource.data.mds is string &&
+        request.resource.data.kedai is string &&
+        request.resource.data.foto_ktp is string &&
+        request.resource.data.foto_penyerahan is string;
+      allow update, delete: if false;
+    }
+  }
+}
