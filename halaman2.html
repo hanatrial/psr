@@ -47,20 +47,26 @@
   .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:44px 0 14px}
   .list-head h2{font-size:14px;font-family:Georgia,serif}
   .list-head .count{font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace}
-  .entry{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}
-  .entry-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
-  .entry-name{font-size:13px;font-weight:700}
+  .list-filter{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .list-filter label{margin:0;white-space:nowrap}
+  .list-filter select{width:auto;min-width:160px;padding:7px 10px;font-size:12.5px}
+
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+  table.report-table{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.report-table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--text3);padding:10px 14px;background:var(--card);border-bottom:1px solid var(--border);
+    white-space:nowrap}
+  table.report-table td{padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+  table.report-table tr:last-child td{border-bottom:none}
+  table.report-table tr:hover td{background:rgba(255,255,255,.02)}
   .entry-area{display:inline-block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;
     color:var(--accent);background:rgba(255,180,84,.12);border:1px solid rgba(255,180,84,.3);
-    border-radius:20px;padding:2px 8px;margin-left:4px;vertical-align:middle}
-  .entry-when{font-size:10.5px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap}
-  .entry-photos{display:flex;gap:8px}
-  .entry-thumb-wrap{flex:1}
-  .entry-thumb-wrap .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:4px}
-  .entry-thumb{width:100%;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block}
-  .entry-thumb-missing{width:100%;height:90px;border-radius:8px;border:1px dashed var(--border);
-    display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--text3)}
-  .empty-list{font-size:12px;color:var(--text3);text-align:center;padding:24px}
+    border-radius:20px;padding:2px 8px}
+  .chk{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+    border-radius:6px;font-size:13px;font-weight:700;text-decoration:none}
+  .chk.yes{background:rgba(79,209,197,.15);color:var(--ok);border:1px solid rgba(79,209,197,.4)}
+  .chk.no{background:rgba(255,255,255,.03);color:var(--text3);border:1px dashed var(--border)}
+  .empty-list{font-size:12px;color:var(--text3);text-align:center;padding:24px;white-space:normal}
 </style>
 </head>
 <body>
@@ -116,7 +122,28 @@
     <h2>Report Masuk</h2>
     <span class="count" id="entryCount">—</span>
   </div>
-  <div id="entryList"><div class="empty-list">Memuat…</div></div>
+  <div class="list-filter">
+    <label for="filterArea">Filter Area</label>
+    <select id="filterArea">
+      <option value="">Semua Area</option>
+      <option value="Makassar">Makassar</option>
+      <option value="Gorontalo">Gorontalo</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Nama MDS</th>
+          <th>Nama Kedai</th>
+          <th>Area</th>
+          <th>KTP</th>
+          <th>Foto</th>
+        </tr>
+      </thead>
+      <tbody id="entryList"><tr><td colspan="5" class="empty-list">Memuat…</td></tr></tbody>
+    </table>
+  </div>
 </div>
 
 <script type="module">
@@ -619,10 +646,32 @@
   fillSelect(fMds, [], 'Pilih Area dulu');
   fillSelect(fKedai, [], 'Pilih Area dulu');
 
+  const filterArea = document.getElementById('filterArea');
+  let lastDocs = [];
+
+  function renderEntries(){
+    const areaFilter = filterArea.value;
+    const docs = areaFilter ? lastDocs.filter(d => d.area === areaFilter) : lastDocs;
+    entryCount.textContent = docs.length + ' report';
+    if(!docs.length){
+      entryList.innerHTML = `<tr><td colspan="5" class="empty-list">${lastDocs.length ? 'Tidak ada report untuk area ini.' : 'Belum ada report masuk.'}</td></tr>`;
+      return;
+    }
+    entryList.innerHTML = docs.map(d => `
+      <tr>
+        <td>${escapeHtml(d.mds || '—')}</td>
+        <td>${escapeHtml(d.kedai || '—')}</td>
+        <td>${d.area ? `<span class="entry-area">${escapeHtml(d.area)}</span>` : '—'}</td>
+        <td>${d.foto_ktp ? `<a class="chk yes" href="${d.foto_ktp}" target="_blank" rel="noopener" title="Lihat foto KTP">✓</a>` : `<span class="chk no">–</span>`}</td>
+        <td>${d.foto_penyerahan ? `<a class="chk yes" href="${d.foto_penyerahan}" target="_blank" rel="noopener" title="Lihat foto penyerahan">✓</a>` : `<span class="chk no">–</span>`}</td>
+      </tr>`).join('');
+  }
+  filterArea.addEventListener('change', renderEntries);
+
   if(!isConfigured){
     document.getElementById('setupWarning').classList.add('show');
     submitBtn.disabled = true;
-    entryList.innerHTML = '<div class="empty-list">Firebase belum dikonfigurasi.</div>';
+    entryList.innerHTML = '<tr><td colspan="5" class="empty-list">Firebase belum dikonfigurasi.</td></tr>';
   } else {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -671,35 +720,12 @@
       }
     });
 
-    const q = query(reportsRef, orderBy('created_at', 'desc'), limit(50));
+    const q = query(reportsRef, orderBy('created_at', 'desc'), limit(200));
     onSnapshot(q, (snap) => {
-      entryCount.textContent = snap.size + ' report';
-      if(snap.empty){
-        entryList.innerHTML = '<div class="empty-list">Belum ada report masuk.</div>';
-        return;
-      }
-      entryList.innerHTML = snap.docs.map(doc => {
-        const d = doc.data();
-        const when = d.created_at && d.created_at.toDate ? d.created_at.toDate().toLocaleString('id-ID') : '';
-        return `<div class="entry">
-          <div class="entry-head">
-            <div class="entry-name">${escapeHtml(d.mds || '—')} — ${escapeHtml(d.kedai || '—')}${d.area ? ` <span class="entry-area">${escapeHtml(d.area)}</span>` : ''}</div>
-            <div class="entry-when">${escapeHtml(when)}</div>
-          </div>
-          <div class="entry-photos">
-            <div class="entry-thumb-wrap">
-              <div class="l">Foto KTP</div>
-              ${d.foto_ktp ? `<a href="${d.foto_ktp}" target="_blank" rel="noopener"><img class="entry-thumb" src="${d.foto_ktp}" alt="Foto KTP"></a>` : `<div class="entry-thumb-missing">Tidak ada</div>`}
-            </div>
-            <div class="entry-thumb-wrap">
-              <div class="l">Foto Penyerahan</div>
-              ${d.foto_penyerahan ? `<a href="${d.foto_penyerahan}" target="_blank" rel="noopener"><img class="entry-thumb" src="${d.foto_penyerahan}" alt="Foto Penyerahan"></a>` : `<div class="entry-thumb-missing">Tidak ada</div>`}
-            </div>
-          </div>
-        </div>`;
-      }).join('');
+      lastDocs = snap.docs.map(doc => doc.data());
+      renderEntries();
     }, (err) => {
-      entryList.innerHTML = '<div class="empty-list">Gagal memuat data: ' + escapeHtml(err.message) + '</div>';
+      entryList.innerHTML = '<tr><td colspan="5" class="empty-list">Gagal memuat data: ' + escapeHtml(err.message) + '</td></tr>';
     });
   }
 
