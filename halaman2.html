@@ -31,8 +31,8 @@
   input,textarea,select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
     background:var(--card);color:var(--text);font-size:13.5px;outline:none;font-family:'DM Sans',sans-serif}
   input:focus,textarea:focus,select:focus{border-color:var(--accent)}
-  textarea{resize:vertical;min-height:90px;line-height:1.5}
   ::placeholder{color:var(--text3)}
+  input[type="file"]{padding:9px 10px;font-size:12px;color:var(--text2)}
 
   button.submit{margin-top:8px;padding:13px;border-radius:9px;border:none;background:var(--accent);
     color:#1a1006;font-size:13.5px;font-weight:700;cursor:pointer;transition:filter .15s}
@@ -48,15 +48,18 @@
   .list-head h2{font-size:14px;font-family:Georgia,serif}
   .list-head .count{font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace}
   .entry{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px}
-  .entry-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .entry-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
   .entry-name{font-size:13px;font-weight:700}
+  .entry-area{display:inline-block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--accent);background:rgba(255,180,84,.12);border:1px solid rgba(255,180,84,.3);
+    border-radius:20px;padding:2px 8px;margin-left:4px;vertical-align:middle}
   .entry-when{font-size:10.5px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap}
-  .entry-sub{font-size:11px;color:var(--text3);margin-bottom:6px}
-  .entry-metrics{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--text2);margin-bottom:6px}
-  .entry-metrics b{color:var(--text)}
-  .entry-insight{font-size:12px;color:var(--text2);line-height:1.5}
-  .entry-photos{display:flex;gap:8px;margin-top:10px}
-  .entry-thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+  .entry-photos{display:flex;gap:8px}
+  .entry-thumb-wrap{flex:1}
+  .entry-thumb-wrap .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:4px}
+  .entry-thumb{width:100%;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block}
+  .entry-thumb-missing{width:100%;height:90px;border-radius:8px;border:1px dashed var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--text3)}
   .empty-list{font-size:12px;color:var(--text3);text-align:center;padding:24px}
 </style>
 </head>
@@ -67,83 +70,38 @@
   <p class="sub">Isi form ini untuk mengirim laporan aktivitas dari lapangan. Data tersimpan otomatis dan bisa dilihat semua anggota tim.</p>
 
   <div class="setup-warning" id="setupWarning">
-    ⚠️ Firebase belum dikonfigurasi. Buka <code>halaman2.html</code>, cari <code>firebaseConfig</code> di bagian bawah file, lalu isi dengan config project Firebase Anda. Detail langkah ada di README.
+    ⚠️ Firebase belum dikonfigurasi. Buka <code>halaman2.html</code>, cari <code>firebaseConfig</code> di bagian bawah file, lalu isi dengan config project Firebase Anda.
   </div>
 
   <form id="reportForm">
-    <div class="row2">
-      <div>
-        <label for="fKab">Kabupaten/Kota</label>
-        <input type="text" id="fKab" placeholder="mis. Kota Palu" required>
-      </div>
-      <div>
-        <label for="fPasar">Nama Pasar / Lokasi</label>
-        <input type="text" id="fPasar" placeholder="mis. Pasar Sentral" required>
-      </div>
-    </div>
-
-    <div class="row2">
-      <div>
-        <label for="fTanggal">Tanggal</label>
-        <input type="date" id="fTanggal" required>
-      </div>
-      <div>
-        <label for="fPersonil">Personil / Tim</label>
-        <input type="text" id="fPersonil" placeholder="mis. 3 orang / nama tim">
-      </div>
+    <div>
+      <label for="fArea">Area</label>
+      <select id="fArea" required>
+        <option value="" disabled selected>Pilih area</option>
+        <option value="Makassar">Makassar</option>
+        <option value="Gorontalo">Gorontalo</option>
+      </select>
     </div>
 
     <div class="row2">
       <div>
         <label for="fMds">Nama MDS</label>
-        <input type="text" id="fMds" placeholder="Nama MDS yang bertugas">
+        <input type="text" id="fMds" placeholder="Nama MDS yang bertugas" required>
       </div>
       <div>
         <label for="fKedai">Nama Kedai</label>
-        <input type="text" id="fKedai" placeholder="Nama kedai/toko">
+        <input type="text" id="fKedai" placeholder="Nama kedai/toko" required>
       </div>
-    </div>
-
-    <div class="row2">
-      <div>
-        <label for="fOmzet">Omzet (Rp)</label>
-        <input type="number" id="fOmzet" placeholder="0" min="0">
-      </div>
-      <div>
-        <label for="fCall">Call</label>
-        <input type="number" id="fCall" placeholder="0" min="0">
-      </div>
-    </div>
-
-    <div class="row2">
-      <div>
-        <label for="fEc">EC</label>
-        <input type="number" id="fEc" placeholder="0" min="0">
-      </div>
-      <div>
-        <label for="fRoBaru">RO Baru</label>
-        <input type="number" id="fRoBaru" placeholder="0" min="0">
-      </div>
-    </div>
-
-    <div>
-      <label for="fTitikGagal">Titik Gagal (belum sempat diambil)</label>
-      <input type="number" id="fTitikGagal" placeholder="0" min="0">
-    </div>
-
-    <div>
-      <label for="fInsight">Insight Lapangan</label>
-      <textarea id="fInsight" placeholder="Ceritakan kondisi lapangan, respons konsumen, kendala, dsb."></textarea>
     </div>
 
     <div class="row2">
       <div>
         <label for="fKtp">Foto KTP</label>
-        <input type="file" id="fKtp" accept="image/*" capture="environment">
+        <input type="file" id="fKtp" accept="image/*" capture="environment" required>
       </div>
       <div>
         <label for="fPenyerahan">Foto Penyerahan</label>
-        <input type="file" id="fPenyerahan" accept="image/*" capture="environment">
+        <input type="file" id="fPenyerahan" accept="image/*" capture="environment" required>
       </div>
     </div>
 
@@ -220,18 +178,9 @@
         ]);
 
         await addDoc(reportsRef, {
-          kab: document.getElementById('fKab').value.trim(),
-          pasar: document.getElementById('fPasar').value.trim(),
-          tanggal: document.getElementById('fTanggal').value,
-          personil: document.getElementById('fPersonil').value.trim(),
+          area: document.getElementById('fArea').value,
           mds: document.getElementById('fMds').value.trim(),
           kedai: document.getElementById('fKedai').value.trim(),
-          omzet: Number(document.getElementById('fOmzet').value) || 0,
-          call: document.getElementById('fCall').value ? Number(document.getElementById('fCall').value) : null,
-          ec: document.getElementById('fEc').value ? Number(document.getElementById('fEc').value) : null,
-          ro_baru: document.getElementById('fRoBaru').value ? Number(document.getElementById('fRoBaru').value) : null,
-          titik_gagal: document.getElementById('fTitikGagal').value ? Number(document.getElementById('fTitikGagal').value) : null,
-          insight: document.getElementById('fInsight').value.trim(),
           foto_ktp: ktpUrl,
           foto_penyerahan: penyerahanUrl,
           created_at: serverTimestamp()
@@ -257,30 +206,22 @@
       }
       entryList.innerHTML = snap.docs.map(doc => {
         const d = doc.data();
-        const metrics = [
-          d.omzet ? 'Omzet: <b>Rp ' + Number(d.omzet).toLocaleString('id-ID') + '</b>' : null,
-          d.call != null ? 'Call: <b>' + d.call + '</b>' : null,
-          d.ec != null ? 'EC: <b>' + d.ec + '</b>' : null,
-          d.ro_baru != null ? 'RO Baru: <b>' + d.ro_baru + '</b>' : null,
-          d.titik_gagal != null ? 'Titik Gagal: <b>' + d.titik_gagal + '</b>' : null
-        ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-        const sub = [
-          d.mds ? 'MDS: ' + escapeHtml(d.mds) : null,
-          d.kedai ? 'Kedai: ' + escapeHtml(d.kedai) : null
-        ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-        const photos = [
-          d.foto_ktp ? `<a href="${d.foto_ktp}" target="_blank" rel="noopener"><img class="entry-thumb" src="${d.foto_ktp}" alt="Foto KTP"></a>` : '',
-          d.foto_penyerahan ? `<a href="${d.foto_penyerahan}" target="_blank" rel="noopener"><img class="entry-thumb" src="${d.foto_penyerahan}" alt="Foto Penyerahan"></a>` : ''
-        ].join('');
+        const when = d.created_at && d.created_at.toDate ? d.created_at.toDate().toLocaleString('id-ID') : '';
         return `<div class="entry">
           <div class="entry-head">
-            <div class="entry-name">${escapeHtml(d.pasar || '—')} — ${escapeHtml(d.kab || '—')}</div>
-            <div class="entry-when">${escapeHtml(d.tanggal || '')}</div>
+            <div class="entry-name">${escapeHtml(d.mds || '—')} — ${escapeHtml(d.kedai || '—')}${d.area ? ` <span class="entry-area">${escapeHtml(d.area)}</span>` : ''}</div>
+            <div class="entry-when">${escapeHtml(when)}</div>
           </div>
-          ${sub ? `<div class="entry-sub">${sub}</div>` : ''}
-          <div class="entry-metrics">${metrics || '<span style="color:var(--text3)">Tidak ada metrik angka</span>'}</div>
-          ${d.insight ? `<div class="entry-insight">${escapeHtml(d.insight)}</div>` : ''}
-          ${photos ? `<div class="entry-photos">${photos}</div>` : ''}
+          <div class="entry-photos">
+            <div class="entry-thumb-wrap">
+              <div class="l">Foto KTP</div>
+              ${d.foto_ktp ? `<a href="${d.foto_ktp}" target="_blank" rel="noopener"><img class="entry-thumb" src="${d.foto_ktp}" alt="Foto KTP"></a>` : `<div class="entry-thumb-missing">Tidak ada</div>`}
+            </div>
+            <div class="entry-thumb-wrap">
+              <div class="l">Foto Penyerahan</div>
+              ${d.foto_penyerahan ? `<a href="${d.foto_penyerahan}" target="_blank" rel="noopener"><img class="entry-thumb" src="${d.foto_penyerahan}" alt="Foto Penyerahan"></a>` : `<div class="entry-thumb-missing">Tidak ada</div>`}
+            </div>
+          </div>
         </div>`;
       }).join('');
     }, (err) => {
