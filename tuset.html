@@ -79,10 +79,24 @@
     color:var(--accent);background:rgba(255,180,84,.12);border:1px solid rgba(255,180,84,.3);
     border-radius:20px;padding:2px 8px}
   .chk{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
-    border-radius:6px;font-size:13px;font-weight:700;text-decoration:none}
-  .chk.yes{background:rgba(79,209,197,.15);color:var(--ok);border:1px solid rgba(79,209,197,.4)}
+    border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;font-family:inherit;
+    padding:0;cursor:default}
+  .chk.yes{background:rgba(79,209,197,.15);color:var(--ok);border:1px solid rgba(79,209,197,.4);cursor:pointer}
+  .chk.yes:hover{filter:brightness(1.15)}
   .chk.no{background:rgba(255,93,93,.1);color:var(--err);border:1px solid rgba(255,93,93,.3)}
   .empty-list{font-size:12px;color:var(--text3);text-align:center;padding:24px;white-space:normal}
+
+  .photo-overlay{display:none;position:fixed;inset:0;background:rgba(6,9,15,.75);backdrop-filter:blur(3px);
+    z-index:110;align-items:center;justify-content:center;padding:24px}
+  .photo-overlay.show{display:flex}
+  .photo-modal{position:relative;max-width:min(92vw,600px);max-height:88vh;background:var(--card);
+    border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;gap:12px}
+  .photo-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text2);
+    font-size:24px;line-height:1;cursor:pointer;padding:4px}
+  .photo-close:hover{color:var(--text)}
+  .photo-modal-title{font-size:13px;font-weight:700;padding-right:20px}
+  .photo-modal-img{max-width:100%;max-height:75vh;object-fit:contain;border-radius:8px;display:block;margin:0 auto}
 </style>
 </head>
 <body>
@@ -175,6 +189,14 @@
   </div>
 </div>
 
+<div class="photo-overlay" id="photoOverlay">
+  <div class="photo-modal">
+    <button class="photo-close" id="photoClose">&times;</button>
+    <div class="photo-modal-title" id="photoModalTitle"></div>
+    <img class="photo-modal-img" id="photoModalImg" alt="">
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -182,9 +204,6 @@
     getFirestore, collection, doc, setDoc, serverTimestamp,
     query, orderBy, limit, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import {
-    getStorage, ref, uploadBytes, getDownloadURL
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   // ==== ISI CONFIG FIREBASE ANDA DI SINI ====
   // Ambil dari Firebase Console > Project Settings > General > Your apps > SDK setup and configuration
@@ -669,6 +688,7 @@
   const filterMds = document.getElementById('filterMds');
   const totalsBar = document.getElementById('totalsBar');
   let lastDocs = [];
+  let lastReportMap = new Map();
 
   function updateMdsFilterOptions(){
     const area = filterArea.value;
@@ -685,6 +705,7 @@
 
     const reportMap = new Map();
     lastDocs.forEach(d => reportMap.set(d.mds + '||' + d.kedai, d));
+    lastReportMap = reportMap;
 
     const rows = MASTER_LIST.filter(r =>
       (!areaFilter || r.area === areaFilter) && (!mdsFilter || r.mds === mdsFilter)
@@ -716,8 +737,8 @@
         <td>${escapeHtml(r.mds)}</td>
         <td>${escapeHtml(r.kedai)}</td>
         <td><span class="entry-area">${escapeHtml(r.area)}</span></td>
-        <td>${d?.foto_ktp ? `<a class="chk yes" href="${d.foto_ktp}" target="_blank" rel="noopener" title="Lihat foto KTP">✓</a>` : `<span class="chk no">✕</span>`}</td>
-        <td>${d?.foto_penyerahan ? `<a class="chk yes" href="${d.foto_penyerahan}" target="_blank" rel="noopener" title="Lihat foto penyerahan">✓</a>` : `<span class="chk no">✕</span>`}</td>
+        <td>${d?.foto_ktp ? `<button type="button" class="chk yes" data-key="${escapeHtml(r.mds + '||' + r.kedai)}" data-field="foto_ktp" title="Lihat foto KTP">✓</button>` : `<span class="chk no">✕</span>`}</td>
+        <td>${d?.foto_penyerahan ? `<button type="button" class="chk yes" data-key="${escapeHtml(r.mds + '||' + r.kedai)}" data-field="foto_penyerahan" title="Lihat foto penyerahan">✓</button>` : `<span class="chk no">✕</span>`}</td>
       </tr>`;
     }).join('');
   }
@@ -726,6 +747,27 @@
   updateMdsFilterOptions();
   renderEntries();
 
+  // Fotonya disimpan sebagai data: URL (base64) di Firestore. Chrome memblokir
+  // navigasi langsung ke data: URL lewat <a href>, jadi dibuka lewat popup preview.
+  entryList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.chk.yes');
+    if(!btn) return;
+    const d = lastReportMap.get(btn.dataset.key);
+    if(!d) return;
+    const url = d[btn.dataset.field];
+    const title = btn.dataset.field === 'foto_ktp' ? 'Foto KTP' : 'Foto Penyerahan';
+    showPhotoModal(url, title);
+  });
+  function showPhotoModal(url, title){
+    document.getElementById('photoModalTitle').textContent = title;
+    document.getElementById('photoModalImg').src = url;
+    document.getElementById('photoOverlay').classList.add('show');
+  }
+  function closePhotoModal(){ document.getElementById('photoOverlay').classList.remove('show'); }
+  document.getElementById('photoClose').addEventListener('click', closePhotoModal);
+  document.getElementById('photoOverlay').addEventListener('click', (e) => { if(e.target.id === 'photoOverlay') closePhotoModal(); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closePhotoModal(); });
+
   if(!isConfigured){
     document.getElementById('setupWarning').classList.add('show');
     submitBtn.disabled = true;
@@ -733,31 +775,46 @@
   } else {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
     const reportsRef = collection(db, "reports");
 
-    // Kompres & resize di browser sebelum upload — foto kamera HP bisa 5-10MB,
-    // ini biasanya turun ke <500KB tanpa kelihatan bedanya di layar.
-    function compressImage(file, maxDim = 1600, quality = 0.75){
+    // Tanpa Firebase Storage: foto dikompres berat lalu disimpan langsung sebagai
+    // base64 di field Firestore. Satu dokumen Firestore maksimal ~1MB, jadi kedua
+    // foto (KTP + Penyerahan) digilir turun kualitasnya sampai muat.
+    function loadImg(file){
       return new Promise((resolve, reject) => {
         const img = new Image();
         const url = URL.createObjectURL(file);
-        img.onload = () => {
-          URL.revokeObjectURL(url);
-          let { width, height } = img;
-          if(width > maxDim || height > maxDim){
-            const ratio = Math.min(maxDim / width, maxDim / height);
-            width = Math.round(width * ratio);
-            height = Math.round(height * ratio);
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width; canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Gagal kompres gambar')), 'image/jpeg', quality);
-        };
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
         img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Gagal membaca gambar')); };
         img.src = url;
       });
+    }
+
+    // maxStringLen = panjang string base64 maksimum (ini yang beneran dihitung
+    // ke kuota 1MB per dokumen Firestore, bukan ukuran biner hasil decode).
+    // 260KB x 2 foto + field lain masih aman di bawah limit 1.048.576 byte.
+    async function compressToDataUrl(file, maxStringLen = 260 * 1024){
+      const img = await loadImg(file);
+      const dims = [1280, 1000, 800, 600, 450];
+      const qualities = [0.6, 0.45, 0.35, 0.25, 0.15];
+      let best = null;
+      for(const maxDim of dims){
+        let { width, height } = img;
+        if(width > maxDim || height > maxDim){
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        for(const q of qualities){
+          const dataUrl = canvas.toDataURL('image/jpeg', q);
+          best = dataUrl;
+          if(dataUrl.length <= maxStringLen) return dataUrl;
+        }
+      }
+      return best; // paling kecil yang bisa dicapai, meski masih di atas target
     }
 
     function slugify(s){
@@ -769,15 +826,9 @@
       return `${slugify(area)}__${slugify(mds)}__${slugify(kedai)}`;
     }
 
-    async function uploadPhoto(file, prefix, area, mds, kedai){
+    async function uploadPhoto(file){
       if(!file) return null;
-      const compressed = await compressImage(file);
-      // Path TANPA timestamp — kalau kedai yang sama upload ulang, file lama
-      // di path ini otomatis ketiban (replace), bukan numpuk jadi file baru.
-      const path = `reports/${slugify(area)}/${slugify(mds)}/${slugify(kedai)}/${prefix}.jpg`;
-      const fileRef = ref(storage, path);
-      await uploadBytes(fileRef, compressed, { contentType: 'image/jpeg' });
-      return await getDownloadURL(fileRef);
+      return await compressToDataUrl(file);
     }
 
     form.addEventListener('submit', async (e) => {
@@ -790,21 +841,22 @@
         const ktpFile = document.getElementById('fKtp').files[0];
         const penyerahanFile = document.getElementById('fPenyerahan').files[0];
         const area = fArea.value, mds = fMds.value, kedai = fKedai.value;
-        const [ktpUrl, penyerahanUrl] = await Promise.all([
-          uploadPhoto(ktpFile, 'ktp', area, mds, kedai),
-          uploadPhoto(penyerahanFile, 'penyerahan', area, mds, kedai)
+        const [ktpDataUrl, penyerahanDataUrl] = await Promise.all([
+          uploadPhoto(ktpFile),
+          uploadPhoto(penyerahanFile)
         ]);
-        // cache-bust: path Storage-nya sama (jadi filenya ketiban), tapi ini memastikan
-        // browser/tabel langsung nampilin foto terbaru, bukan versi lama yang ke-cache.
-        const bust = '&_v=' + Date.now();
+
+        if(ktpDataUrl.length + penyerahanDataUrl.length > 900 * 1024){
+          throw new Error('Ukuran foto masih terlalu besar setelah dikompres. Coba foto ulang dengan pencahayaan lebih rata / tidak terlalu detail, lalu kirim lagi.');
+        }
 
         // ID dokumen tetap per (area, mds, kedai) -> upload ulang MENIMPA laporan
         // sebelumnya untuk kedai yang sama, bukan menambah entri baru.
         const docId = reportDocId(area, mds, kedai);
         await setDoc(doc(reportsRef, docId), {
           area, mds, kedai,
-          foto_ktp: ktpUrl + bust,
-          foto_penyerahan: penyerahanUrl + bust,
+          foto_ktp: ktpDataUrl,
+          foto_penyerahan: penyerahanDataUrl,
           created_at: serverTimestamp()
         });
         form.reset();
