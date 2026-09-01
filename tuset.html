@@ -736,11 +736,43 @@
     const storage = getStorage(app);
     const reportsRef = collection(db, "reports");
 
-    async function uploadPhoto(file, prefix){
+    // Kompres & resize di browser sebelum upload — foto kamera HP bisa 5-10MB,
+    // ini biasanya turun ke <500KB tanpa kelihatan bedanya di layar.
+    function compressImage(file, maxDim = 1600, quality = 0.75){
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let { width, height } = img;
+          if(width > maxDim || height > maxDim){
+            const ratio = Math.min(maxDim / width, maxDim / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Gagal kompres gambar')), 'image/jpeg', quality);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Gagal membaca gambar')); };
+        img.src = url;
+      });
+    }
+
+    function slugify(s){
+      return String(s).toLowerCase().trim()
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
+    }
+
+    async function uploadPhoto(file, prefix, area, mds, kedai){
       if(!file) return null;
-      const path = `reports/${Date.now()}_${prefix}_${file.name}`;
+      const compressed = await compressImage(file);
+      // Path terstruktur per area/MDS/kedai — bukan numpuk semua di satu folder flat,
+      // jadi gampang diaudit/dibersihkan per cabang lewat Storage console.
+      const path = `reports/${slugify(area)}/${slugify(mds)}/${slugify(kedai)}/${Date.now()}_${prefix}.jpg`;
       const fileRef = ref(storage, path);
-      await uploadBytes(fileRef, file);
+      await uploadBytes(fileRef, compressed, { contentType: 'image/jpeg' });
       return await getDownloadURL(fileRef);
     }
 
@@ -753,9 +785,10 @@
       try {
         const ktpFile = document.getElementById('fKtp').files[0];
         const penyerahanFile = document.getElementById('fPenyerahan').files[0];
+        const area = fArea.value, mds = fMds.value, kedai = fKedai.value;
         const [ktpUrl, penyerahanUrl] = await Promise.all([
-          uploadPhoto(ktpFile, 'ktp'),
-          uploadPhoto(penyerahanFile, 'penyerahan')
+          uploadPhoto(ktpFile, 'ktp', area, mds, kedai),
+          uploadPhoto(penyerahanFile, 'penyerahan', area, mds, kedai)
         ]);
 
         await addDoc(reportsRef, {
