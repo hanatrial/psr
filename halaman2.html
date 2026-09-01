@@ -74,7 +74,7 @@
   .chk{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
     border-radius:6px;font-size:13px;font-weight:700;text-decoration:none}
   .chk.yes{background:rgba(79,209,197,.15);color:var(--ok);border:1px solid rgba(79,209,197,.4)}
-  .chk.no{background:rgba(255,255,255,.03);color:var(--text3);border:1px dashed var(--border)}
+  .chk.no{background:rgba(255,93,93,.1);color:var(--err);border:1px solid rgba(255,93,93,.3)}
   .empty-list{font-size:12px;color:var(--text3);text-align:center;padding:24px;white-space:normal}
 </style>
 </head>
@@ -704,8 +704,8 @@
         <td>${escapeHtml(r.mds)}</td>
         <td>${escapeHtml(r.kedai)}</td>
         <td><span class="entry-area">${escapeHtml(r.area)}</span></td>
-        <td>${d?.foto_ktp ? `<a class="chk yes" href="${d.foto_ktp}" target="_blank" rel="noopener" title="Lihat foto KTP">✓</a>` : `<span class="chk no">–</span>`}</td>
-        <td>${d?.foto_penyerahan ? `<a class="chk yes" href="${d.foto_penyerahan}" target="_blank" rel="noopener" title="Lihat foto penyerahan">✓</a>` : `<span class="chk no">–</span>`}</td>
+        <td>${d?.foto_ktp ? `<a class="chk yes" href="${d.foto_ktp}" target="_blank" rel="noopener" title="Lihat foto KTP">✓</a>` : `<span class="chk no">✕</span>`}</td>
+        <td>${d?.foto_penyerahan ? `<a class="chk yes" href="${d.foto_penyerahan}" target="_blank" rel="noopener" title="Lihat foto penyerahan">✓</a>` : `<span class="chk no">✕</span>`}</td>
       </tr>`;
     }).join('');
   }
