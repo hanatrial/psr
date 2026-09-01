@@ -179,7 +179,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, serverTimestamp,
+    getFirestore, collection, doc, setDoc, serverTimestamp,
     query, orderBy, limit, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import {
@@ -765,12 +765,16 @@
         .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
     }
 
+    function reportDocId(area, mds, kedai){
+      return `${slugify(area)}__${slugify(mds)}__${slugify(kedai)}`;
+    }
+
     async function uploadPhoto(file, prefix, area, mds, kedai){
       if(!file) return null;
       const compressed = await compressImage(file);
-      // Path terstruktur per area/MDS/kedai — bukan numpuk semua di satu folder flat,
-      // jadi gampang diaudit/dibersihkan per cabang lewat Storage console.
-      const path = `reports/${slugify(area)}/${slugify(mds)}/${slugify(kedai)}/${Date.now()}_${prefix}.jpg`;
+      // Path TANPA timestamp — kalau kedai yang sama upload ulang, file lama
+      // di path ini otomatis ketiban (replace), bukan numpuk jadi file baru.
+      const path = `reports/${slugify(area)}/${slugify(mds)}/${slugify(kedai)}/${prefix}.jpg`;
       const fileRef = ref(storage, path);
       await uploadBytes(fileRef, compressed, { contentType: 'image/jpeg' });
       return await getDownloadURL(fileRef);
@@ -790,13 +794,17 @@
           uploadPhoto(ktpFile, 'ktp', area, mds, kedai),
           uploadPhoto(penyerahanFile, 'penyerahan', area, mds, kedai)
         ]);
+        // cache-bust: path Storage-nya sama (jadi filenya ketiban), tapi ini memastikan
+        // browser/tabel langsung nampilin foto terbaru, bukan versi lama yang ke-cache.
+        const bust = '&_v=' + Date.now();
 
-        await addDoc(reportsRef, {
-          area: fArea.value,
-          mds: fMds.value,
-          kedai: fKedai.value,
-          foto_ktp: ktpUrl,
-          foto_penyerahan: penyerahanUrl,
+        // ID dokumen tetap per (area, mds, kedai) -> upload ulang MENIMPA laporan
+        // sebelumnya untuk kedai yang sama, bukan menambah entri baru.
+        const docId = reportDocId(area, mds, kedai);
+        await setDoc(doc(reportsRef, docId), {
+          area, mds, kedai,
+          foto_ktp: ktpUrl + bust,
+          foto_penyerahan: penyerahanUrl + bust,
           created_at: serverTimestamp()
         });
         form.reset();
