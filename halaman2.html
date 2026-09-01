@@ -86,11 +86,15 @@
     <div class="row2">
       <div>
         <label for="fMds">Nama MDS</label>
-        <input type="text" id="fMds" placeholder="Nama MDS yang bertugas" required>
+        <select id="fMds" required>
+          <option value="" disabled selected>Pilih MDS</option>
+        </select>
       </div>
       <div>
         <label for="fKedai">Nama Kedai</label>
-        <input type="text" id="fKedai" placeholder="Nama kedai/toko" required>
+        <select id="fKedai" required>
+          <option value="" disabled selected>Pilih kedai</option>
+        </select>
       </div>
     </div>
 
@@ -138,12 +142,40 @@
   };
   // ============================================
 
+  // ==== ISI DAFTAR MDS & KEDAI DI SINI ====
+  // Tinggal isi array di bawah dengan nama-nama dari database Anda, dropdown akan otomatis terisi.
+  const MDS_LIST = [
+    // "Nama MDS 1", "Nama MDS 2", ...
+  ];
+  const KEDAI_LIST = [
+    // "Nama Kedai 1", "Nama Kedai 2", ...
+  ];
+  // ==========================================
+
   const isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI");
   const form = document.getElementById('reportForm');
   const submitBtn = document.getElementById('submitBtn');
   const statusEl = document.getElementById('formStatus');
   const entryList = document.getElementById('entryList');
   const entryCount = document.getElementById('entryCount');
+
+  function fillSelect(selectEl, items){
+    if(!items.length){
+      const opt = document.createElement('option');
+      opt.disabled = true;
+      opt.textContent = 'Belum ada data — isi MDS_LIST/KEDAI_LIST di halaman2.html';
+      selectEl.appendChild(opt);
+      return;
+    }
+    items.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      selectEl.appendChild(opt);
+    });
+  }
+  fillSelect(document.getElementById('fMds'), MDS_LIST);
+  fillSelect(document.getElementById('fKedai'), KEDAI_LIST);
 
   if(!isConfigured){
     document.getElementById('setupWarning').classList.add('show');
