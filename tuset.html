@@ -144,6 +144,11 @@
       </div>
     </div>
 
+    <div>
+      <label for="fDisplay">Foto Display</label>
+      <input type="file" id="fDisplay" accept="image/*" required>
+    </div>
+
     <button type="submit" class="submit" id="submitBtn">Kirim Report</button>
     <div class="status" id="formStatus"></div>
   </form>
@@ -182,9 +187,10 @@
           <th>Area</th>
           <th>KTP</th>
           <th>Foto</th>
+          <th>Display</th>
         </tr>
       </thead>
-      <tbody id="entryList"><tr><td colspan="5" class="empty-list">Memuat…</td></tr></tbody>
+      <tbody id="entryList"><tr><td colspan="6" class="empty-list">Memuat…</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -713,9 +719,10 @@
 
     const withKtp = rows.filter(r => reportMap.get(r.mds + '||' + r.kedai)?.foto_ktp).length;
     const withFoto = rows.filter(r => reportMap.get(r.mds + '||' + r.kedai)?.foto_penyerahan).length;
+    const withDisplay = rows.filter(r => reportMap.get(r.mds + '||' + r.kedai)?.foto_display).length;
     const lengkap = rows.filter(r => {
       const d = reportMap.get(r.mds + '||' + r.kedai);
-      return d?.foto_ktp && d?.foto_penyerahan;
+      return d?.foto_ktp && d?.foto_penyerahan && d?.foto_display;
     }).length;
 
     entryCount.textContent = rows.length + ' kedai';
@@ -723,22 +730,25 @@
       <div class="t"><div class="n">${rows.length}</div><div class="l">Total Kedai</div></div>
       <div class="t"><div class="n">${withKtp}</div><div class="l">KTP Masuk</div></div>
       <div class="t"><div class="n">${withFoto}</div><div class="l">Foto Masuk</div></div>
+      <div class="t"><div class="n">${withDisplay}</div><div class="l">Display Masuk</div></div>
       <div class="t ok"><div class="n">${lengkap} / ${rows.length}</div><div class="l">Lengkap</div></div>
       <div class="t pending"><div class="n">${rows.length - lengkap}</div><div class="l">Belum Lengkap</div></div>`;
 
     if(!rows.length){
-      entryList.innerHTML = '<tr><td colspan="5" class="empty-list">Tidak ada kedai untuk filter ini.</td></tr>';
+      entryList.innerHTML = '<tr><td colspan="6" class="empty-list">Tidak ada kedai untuk filter ini.</td></tr>';
       return;
     }
     entryList.innerHTML = rows.map(r => {
       const d = reportMap.get(r.mds + '||' + r.kedai);
+      const key = r.mds + '||' + r.kedai;
       return `
       <tr>
         <td>${escapeHtml(r.mds)}</td>
         <td>${escapeHtml(r.kedai)}</td>
         <td><span class="entry-area">${escapeHtml(r.area)}</span></td>
-        <td>${d?.foto_ktp ? `<button type="button" class="chk yes" data-key="${escapeHtml(r.mds + '||' + r.kedai)}" data-field="foto_ktp" title="Lihat foto KTP">✓</button>` : `<span class="chk no">✕</span>`}</td>
-        <td>${d?.foto_penyerahan ? `<button type="button" class="chk yes" data-key="${escapeHtml(r.mds + '||' + r.kedai)}" data-field="foto_penyerahan" title="Lihat foto penyerahan">✓</button>` : `<span class="chk no">✕</span>`}</td>
+        <td>${d?.foto_ktp ? `<button type="button" class="chk yes" data-key="${escapeHtml(key)}" data-field="foto_ktp" title="Lihat foto KTP">✓</button>` : `<span class="chk no">✕</span>`}</td>
+        <td>${d?.foto_penyerahan ? `<button type="button" class="chk yes" data-key="${escapeHtml(key)}" data-field="foto_penyerahan" title="Lihat foto penyerahan">✓</button>` : `<span class="chk no">✕</span>`}</td>
+        <td>${d?.foto_display ? `<button type="button" class="chk yes" data-key="${escapeHtml(key)}" data-field="foto_display" title="Lihat foto display">✓</button>` : `<span class="chk no">✕</span>`}</td>
       </tr>`;
     }).join('');
   }
@@ -755,7 +765,8 @@
     const d = lastReportMap.get(btn.dataset.key);
     if(!d) return;
     const url = d[btn.dataset.field];
-    const title = btn.dataset.field === 'foto_ktp' ? 'Foto KTP' : 'Foto Penyerahan';
+    const titles = { foto_ktp: 'Foto KTP', foto_penyerahan: 'Foto Penyerahan', foto_display: 'Foto Display' };
+    const title = titles[btn.dataset.field];
     showPhotoModal(url, title);
   });
   function showPhotoModal(url, title){
@@ -771,7 +782,7 @@
   if(!isConfigured){
     document.getElementById('setupWarning').classList.add('show');
     submitBtn.disabled = true;
-    entryList.innerHTML = '<tr><td colspan="5" class="empty-list">Firebase belum dikonfigurasi.</td></tr>';
+    entryList.innerHTML = '<tr><td colspan="6" class="empty-list">Firebase belum dikonfigurasi.</td></tr>';
   } else {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -792,8 +803,8 @@
 
     // maxStringLen = panjang string base64 maksimum (ini yang beneran dihitung
     // ke kuota 1MB per dokumen Firestore, bukan ukuran biner hasil decode).
-    // 260KB x 2 foto + field lain masih aman di bawah limit 1.048.576 byte.
-    async function compressToDataUrl(file, maxStringLen = 260 * 1024){
+    // 220KB x 3 foto + field lain masih aman di bawah limit 1.048.576 byte.
+    async function compressToDataUrl(file, maxStringLen = 220 * 1024){
       const img = await loadImg(file);
       const dims = [1280, 1000, 800, 600, 450];
       const qualities = [0.6, 0.45, 0.35, 0.25, 0.15];
@@ -840,13 +851,15 @@
       try {
         const ktpFile = document.getElementById('fKtp').files[0];
         const penyerahanFile = document.getElementById('fPenyerahan').files[0];
+        const displayFile = document.getElementById('fDisplay').files[0];
         const area = fArea.value, mds = fMds.value, kedai = fKedai.value;
-        const [ktpDataUrl, penyerahanDataUrl] = await Promise.all([
+        const [ktpDataUrl, penyerahanDataUrl, displayDataUrl] = await Promise.all([
           uploadPhoto(ktpFile),
-          uploadPhoto(penyerahanFile)
+          uploadPhoto(penyerahanFile),
+          uploadPhoto(displayFile)
         ]);
 
-        if(ktpDataUrl.length + penyerahanDataUrl.length > 900 * 1024){
+        if(ktpDataUrl.length + penyerahanDataUrl.length + displayDataUrl.length > 950 * 1024){
           throw new Error('Ukuran foto masih terlalu besar setelah dikompres. Coba foto ulang dengan pencahayaan lebih rata / tidak terlalu detail, lalu kirim lagi.');
         }
 
@@ -857,6 +870,7 @@
           area, mds, kedai,
           foto_ktp: ktpDataUrl,
           foto_penyerahan: penyerahanDataUrl,
+          foto_display: displayDataUrl,
           created_at: serverTimestamp()
         });
         form.reset();
@@ -876,7 +890,7 @@
       lastDocs = snap.docs.map(doc => doc.data());
       renderEntries();
     }, (err) => {
-      entryList.innerHTML = '<tr><td colspan="5" class="empty-list">Gagal memuat data: ' + escapeHtml(err.message) + '</td></tr>';
+      entryList.innerHTML = '<tr><td colspan="6" class="empty-list">Gagal memuat data: ' + escapeHtml(err.message) + '</td></tr>';
     });
   }
 
@@ -922,7 +936,7 @@
     const complete = MASTER_LIST.filter(r =>
       (!areaFilter || r.area === areaFilter) && (!mdsFilter || r.mds === mdsFilter)
     ).map(r => ({ r, d: reportMap.get(r.mds + '||' + r.kedai) }))
-     .filter(({ d }) => d && d.foto_ktp && d.foto_penyerahan);
+     .filter(({ d }) => d && d.foto_ktp && d.foto_penyerahan && d.foto_display);
 
     if(!complete.length){
       pdfStatus.textContent = 'Tidak ada kedai lengkap untuk filter saat ini.';
@@ -955,14 +969,22 @@
       doc.setTextColor(20);
 
       try {
-        const [ktpImg, penyImg] = await Promise.all([loadImage(d.foto_ktp), loadImage(d.foto_penyerahan)]);
+        const [ktpImg, penyImg, displayImg] = await Promise.all([
+          loadImage(d.foto_ktp), loadImage(d.foto_penyerahan), loadImage(d.foto_display)
+        ]);
         doc.setFontSize(9);
         doc.text('Foto KTP', margin, contentTop);
         drawImageFit(doc, ktpImg, margin, contentTop + 3, imgW, halfH - 3);
 
+        // Setengah bawah dibagi 2 kolom: Foto Penyerahan | Foto Display
         const secondTop = contentTop + halfH + 8;
+        const colGap = 6;
+        const colW = (imgW - colGap) / 2;
         doc.text('Foto Penyerahan', margin, secondTop);
-        drawImageFit(doc, penyImg, margin, secondTop + 3, imgW, halfH - 3);
+        drawImageFit(doc, penyImg, margin, secondTop + 3, colW, halfH - 3);
+
+        doc.text('Foto Display', margin + colW + colGap, secondTop);
+        drawImageFit(doc, displayImg, margin + colW + colGap, secondTop + 3, colW, halfH - 3);
       } catch (err) {
         doc.setFontSize(10);
         doc.text('Gagal memuat foto untuk kedai ini.', margin, contentTop + 10);

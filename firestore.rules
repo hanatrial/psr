@@ -7,12 +7,13 @@ service cloud.firestore {
       // ulang (menimpa laporan sebelumnya, ID dokumennya sengaja dibuat tetap
       // per area+mds+kedai di tuset.html). Delete tetap ditutup dari client.
       allow create, update: if
-        request.resource.data.keys().hasAll(['area', 'mds', 'kedai', 'foto_ktp', 'foto_penyerahan', 'created_at']) &&
+        request.resource.data.keys().hasAll(['area', 'mds', 'kedai', 'foto_ktp', 'foto_penyerahan', 'foto_display', 'created_at']) &&
         request.resource.data.area is string &&
         request.resource.data.mds is string &&
         request.resource.data.kedai is string &&
         request.resource.data.foto_ktp is string &&
-        request.resource.data.foto_penyerahan is string;
+        request.resource.data.foto_penyerahan is string &&
+        request.resource.data.foto_display is string;
       allow delete: if false;
     }
   }
