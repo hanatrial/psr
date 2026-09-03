@@ -1,11 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // reports (app tuset.html) — validasi field wajib tetap dipertahankan
     match /reports/{reportId} {
       allow read: if true;
-      // create = kedai baru pertama kali submit; update = kedai yang sama upload
-      // ulang (menimpa laporan sebelumnya, ID dokumennya sengaja dibuat tetap
-      // per area+mds+kedai di tuset.html). Delete tetap ditutup dari client.
       allow create, update: if
         request.resource.data.keys().hasAll(['area', 'mds', 'kedai', 'foto_ktp', 'foto_penyerahan', 'foto_display', 'created_at']) &&
         request.resource.data.area is string &&
@@ -16,5 +15,20 @@ service cloud.firestore {
         request.resource.data.foto_display is string;
       allow delete: if false;
     }
+
+    // Semua collection lain (tidak pakai Firebase Auth) — dibuka penuh
+    // termasuk seluruh sub-collection di dalamnya.
+    match /distributor_reg/{document=**} { allow read, write: if true; }
+    match /focusData/{document=**} { allow read, write: if true; }
+    match /indogrosir_data/{document=**} { allow read, write: if true; }
+    match /insentifData/{document=**} { allow read, write: if true; }
+    match /kedai_db/{document=**} { allow read, write: if true; }
+    match /monitoring_noo/{document=**} { allow read, write: if true; }
+    match /pjmds_data/{document=**} { allow read, write: if true; }
+    match /pjmds_manual_match/{document=**} { allow read, write: if true; }
+    match /sulawesi_db_kedai/{document=**} { allow read, write: if true; }
+    match /sulawesi_mds_data/{document=**} { allow read, write: if true; }
+    match /tokoMTTargets/{document=**} { allow read, write: if true; }
+    match /tokomodern_data/{document=**} { allow read, write: if true; }
   }
 }
