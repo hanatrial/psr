@@ -828,11 +828,6 @@
       return best; // paling kecil yang bisa dicapai, meski masih di atas target
     }
 
-    function slugify(s){
-      return String(s).toLowerCase().trim()
-        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
-    }
-
     function reportDocId(area, mds, kedai){
       return `${slugify(area)}__${slugify(mds)}__${slugify(kedai)}`;
     }
@@ -896,6 +891,11 @@
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function slugify(s){
+    return String(s).toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
   }
 
   // ---- Export PDF: 1 halaman per kedai lengkap (KTP + Foto Penyerahan, masing-masing setengah halaman) ----
