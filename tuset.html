@@ -939,7 +939,8 @@
      .filter(({ d }) => d && d.foto_ktp && d.foto_penyerahan && d.foto_display);
 
     if(!complete.length){
-      pdfStatus.textContent = 'Tidak ada kedai lengkap untuk filter saat ini.';
+      const filterLabel = [areaFilter, mdsFilter].filter(Boolean).join(' · ');
+      pdfStatus.textContent = `Tidak ada kedai lengkap${filterLabel ? ' untuk ' + filterLabel : ' untuk filter saat ini'}.`;
       setTimeout(() => pdfStatus.textContent = '', 4000);
       return;
     }
@@ -991,8 +992,10 @@
       }
     }
 
-    doc.save('report-tukar-sachet.pdf');
-    pdfStatus.textContent = `✓ ${complete.length} kedai berhasil diekspor.`;
+    const fnameParts = ['report-tukar-sachet', areaFilter, mdsFilter].filter(Boolean).map(slugify);
+    doc.save(fnameParts.join('_') + '.pdf');
+    const filterLabel = [areaFilter, mdsFilter].filter(Boolean).join(' · ');
+    pdfStatus.textContent = `✓ ${complete.length} kedai berhasil diekspor${filterLabel ? ' (' + filterLabel + ')' : ''}.`;
     pdfBtn.disabled = false;
     setTimeout(() => pdfStatus.textContent = '', 5000);
   });
