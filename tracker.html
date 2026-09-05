@@ -280,28 +280,6 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
   <div class="panel" id="panel-tahun"></div>
 
   <div class="footnote">Data tersimpan otomatis di perangkat/browser ini. Kartu di atas & daftar pengeluaran ngikutin tanggal yang dipilih. Sisa budget tiap tanggal otomatis nambah/ngurangin budget tanggal berikutnya (rolling).</div>
-
-  <div style="height:1px;background:var(--line);margin:36px 0 26px;"></div>
-
-  <div class="eyebrow">Terpisah dari budget harian</div>
-  <h1 style="font-size:clamp(1.15rem, 5.2vw, 1.5rem);margin:0 0 16px;">Utang Piutang</h1>
-
-  <div class="input-row" style="flex-direction:column;gap:8px;">
-    <div style="display:flex;gap:8px;">
-      <input type="text" id="debtPerson" placeholder="Nama orang" style="flex:1.4;min-width:0;">
-      <input type="text" id="debtAmount" placeholder="mis. 50k" inputmode="numeric" style="flex:1;min-width:0;">
-    </div>
-    <select id="debtDirection" style="width:100%;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:13px 14px;font-size:1rem;color:var(--ink);">
-      <option value="dia_berutang">Dia berutang ke saya</option>
-      <option value="saya_berutang">Saya berutang ke dia</option>
-    </select>
-    <input type="text" id="debtNote" placeholder="Catatan (opsional)">
-  </div>
-  <div class="error" id="debtErr"></div>
-  <button id="debtAddBtn" style="width:100%;padding:14px 0;margin:10px 0 22px;">Tambah utang</button>
-
-  <div id="debtSummary"></div>
-  <div id="debtList" style="margin-top:8px;"></div>
 </div>
 
 <div id="modalOverlay" class="modal-overlay" style="display:none;">
@@ -317,7 +295,7 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc
+  getFirestore, collection, doc, setDoc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -331,7 +309,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const expensesRef = collection(db, "tracker_expenses");
-const debtsRef = collection(db, "tracker_debts"); // koleksi terpisah, tidak dipakai/dibaca oleh fitur budget di atas
 
 // ---- Gate password ----
 const GATE_PW = '194040';
@@ -832,132 +809,6 @@ subscribeData(() => {
   renderSelectedDay();
   renderRecap();
 });
-
-// ==================================================================
-// ---- Utang Piutang (fitur terpisah total, collection Firestore beda,
-//      tidak membaca/menulis data budget di atas sama sekali) ----
-// ==================================================================
-let allDebts = []; // [{id, person, direction, amount, note, settled, created_at}]
-
-function fmtDebt(n){ return 'Rp' + Math.round(Math.abs(n)).toLocaleString('id-ID'); }
-
-onSnapshot(debtsRef, (snap) => {
-  allDebts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  renderDebts();
-}, (err) => {
-  document.getElementById('debtList').innerHTML = '<div class="empty">Gagal memuat data utang: ' + err.message + '</div>';
-});
-
-document.getElementById('debtAddBtn').addEventListener('click', async () => {
-  const personEl = document.getElementById('debtPerson');
-  const amountEl = document.getElementById('debtAmount');
-  const directionEl = document.getElementById('debtDirection');
-  const noteEl = document.getElementById('debtNote');
-  const errEl = document.getElementById('debtErr');
-  errEl.style.display = 'none';
-
-  const person = personEl.value.trim();
-  const amount = parseAmount(amountEl.value.trim());
-
-  if(!person){
-    errEl.textContent = 'Nama orangnya diisi dulu.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if(amount === null || amount <= 0){
-    errEl.textContent = 'Jumlahnya belum kebaca. Coba format: 50k atau 50000.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  try {
-    await addDoc(debtsRef, {
-      person,
-      direction: directionEl.value,
-      amount,
-      note: noteEl.value.trim(),
-      settled: false,
-      created_at: Date.now()
-    });
-    personEl.value = ''; amountEl.value = ''; noteEl.value = '';
-    personEl.focus();
-  } catch (e) {
-    errEl.textContent = 'Gagal menyimpan: ' + e.message;
-    errEl.style.display = 'block';
-  }
-});
-
-async function toggleDebtSettled(id, current){
-  try { await updateDoc(doc(debtsRef, id), { settled: !current }); }
-  catch (e) { alert('Gagal update: ' + e.message); }
-}
-async function deleteDebt(id){
-  try { await deleteDoc(doc(debtsRef, id)); }
-  catch (e) { alert('Gagal hapus: ' + e.message); }
-}
-
-function renderDebts(){
-  const summaryEl = document.getElementById('debtSummary');
-  const listEl = document.getElementById('debtList');
-
-  if(!allDebts.length){
-    summaryEl.innerHTML = '';
-    listEl.innerHTML = '<div class="empty">Belum ada catatan utang piutang.</div>';
-    return;
-  }
-
-  // Kelompokkan per orang, hitung saldo bersih dari yang BELUM lunas saja.
-  const byPerson = {};
-  allDebts.forEach(d => {
-    if(!byPerson[d.person]) byPerson[d.person] = { net: 0, items: [] };
-    byPerson[d.person].items.push(d);
-    if(!d.settled){
-      byPerson[d.person].net += d.direction === 'dia_berutang' ? d.amount : -d.amount;
-    }
-  });
-
-  const people = Object.keys(byPerson).sort((a,b)=>a.localeCompare(b));
-  const grandNet = people.reduce((s,p)=>s+byPerson[p].net,0);
-
-  summaryEl.innerHTML = `
-    <div class="recap-row static">
-      <div class="recap-label">Total bersih semua orang</div>
-      <div class="recap-amount ${grandNet>=0?'under':'over'}">${grandNet===0?'Impas':(grandNet>0?'+':'-')+fmtDebt(grandNet)}</div>
-    </div>`;
-
-  listEl.innerHTML = people.map(person => {
-    const g = byPerson[person];
-    const items = g.items.slice().sort((a,b)=>b.created_at-a.created_at);
-    const netLabel = g.net === 0 ? 'Impas' : (g.net > 0 ? `${person} berutang ${fmtDebt(g.net)}` : `Anda berutang ${fmtDebt(g.net)}`);
-    const itemsHtml = items.map(it => {
-      const dirLabel = it.direction === 'dia_berutang' ? `${it.person} berutang` : `Anda berutang ke ${it.person}`;
-      return `<div class="item" style="${it.settled ? 'opacity:.5' : ''}">
-        <span>
-          <div>${dirLabel}${it.note ? ' &middot; ' + it.note : ''}</div>
-          <div style="font-size:.75rem;color:var(--ink-soft);">${it.settled ? 'Lunas' : 'Belum lunas'}</div>
-        </span>
-        <span style="display:flex;align-items:center;gap:10px;">
-          <span>${fmtDebt(it.amount)}</span>
-          <span class="del" data-toggle-id="${it.id}" data-toggle-settled="${it.settled}">${it.settled ? 'Batal' : 'Lunas'}</span>
-          <span class="del" data-del-id="${it.id}">Hapus</span>
-        </span>
-      </div>`;
-    }).join('');
-    return `
-      <div class="recap-row static" style="border-bottom:none;padding-bottom:4px;">
-        <div class="recap-label">${person}</div>
-        <div class="recap-amount ${g.net>=0?'under':'over'}">${netLabel}</div>
-      </div>
-      <div style="margin-bottom:16px;display:flex;flex-direction:column;gap:6px;">${itemsHtml}</div>`;
-  }).join('');
-
-  listEl.querySelectorAll('[data-toggle-id]').forEach(el => {
-    el.addEventListener('click', () => toggleDebtSettled(el.dataset.toggleId, el.dataset.toggleSettled === 'true'));
-  });
-  listEl.querySelectorAll('[data-del-id]').forEach(el => {
-    el.addEventListener('click', () => { if(confirm('Hapus catatan utang ini?')) deleteDebt(el.dataset.delId); });
-  });
-}
 </script>
 </body>
 </html>
