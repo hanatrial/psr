@@ -264,13 +264,14 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
   </div>
   <div class="error" id="errMsg"></div>
   <button id="addBtn" style="width:100%;padding:14px 0;margin-bottom:8px;">Tambah pengeluaran</button>
-  <div style="font-size:.8rem;color:var(--ink-soft);margin-bottom:20px;line-height:1.5;">Satu item per baris, contoh: "kopi 20k" lalu Enter, "makan 20k" di baris baru. Ganti tanggal di atas untuk lihat/isi hari lain — semua di halaman ini (sisa budget & daftar pengeluaran) ikut berubah sesuai tanggal yang dipilih.</div>
+  <div style="font-size:.8rem;color:var(--ink-soft);margin-bottom:20px;line-height:1.5;">Satu item per baris, contoh: "kopi 20k" lalu Enter, "makan 20k" di baris baru. Ganti tanggal di atas untuk lihat/isi hari lain — semua di halaman ini (sisa budget & daftar pengeluaran) ikut berubah sesuai tanggal yang dipilih.<br><br>Buat catat utang piutang (tidak memotong budget), tulis: <b>utang &lt;yang berutang&gt; ke &lt;yang dikasih utang&gt; &lt;keterangan&gt; &lt;nominal&gt;</b> — contoh: "utang lisa ke imad makan padang 47k".</div>
 
   <div class="list" id="list"></div>
 
   <div class="tabs">
     <div class="tab active" data-tab="bulan">Rekap bulan</div>
     <div class="tab" data-tab="tahun">Rekap tahun</div>
+    <div class="tab" data-tab="utang">Rekap utang</div>
   </div>
 
   <div class="panel active" id="panel-bulan">
@@ -278,6 +279,7 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
     <div id="panel-bulan-content"></div>
   </div>
   <div class="panel" id="panel-tahun"></div>
+  <div class="panel" id="panel-utang"></div>
 
   <div class="footnote">Data tersimpan otomatis di perangkat/browser ini. Kartu di atas & daftar pengeluaran ngikutin tanggal yang dipilih. Sisa budget tiap tanggal otomatis nambah/ngurangin budget tanggal berikutnya (rolling).</div>
 </div>
@@ -295,7 +297,7 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, onSnapshot
+  getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -309,6 +311,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const expensesRef = collection(db, "tracker_expenses");
+const debtsRef = collection(db, "tracker_debts"); // koleksi terpisah, sama sekali tidak dibaca oleh logika budget di atas
 
 // ---- Gate password ----
 const GATE_PW = '194040';
@@ -433,11 +436,30 @@ function parseAmount(str){
   return num * mult;
 }
 
+// Baris "utang <yang berutang> ke <yang dikasih utang> <keterangan> <nominal>"
+// dideteksi terpisah dari pengeluaran biasa -> tidak masuk hitungan budget sama sekali,
+// cuma dicatat ke rekap utang (koleksi Firestore beda: tracker_debts).
+const UTANG_RE = /^utang\s+(\S+)\s+ke\s+(\S+)\s+(.+?)\s+((?:rp)?\s?[\d.,]+\s?(?:rb|ribu|jt|juta|k)?)$/i;
+
+function parseDebtLine(chunk){
+  const m = chunk.match(UTANG_RE);
+  if(!m) return null;
+  const amt = parseAmount(m[4]);
+  if(amt === null || amt <= 0) return null;
+  return { debtor: m[1], creditor: m[2], desc: m[3].trim(), amt };
+}
+
 function parseFreeText(text){
   const chunks = text.split(/,|\n/).map(c=>c.trim()).filter(Boolean);
   const results = [];
+  const debts = [];
   const failed = [];
   chunks.forEach(chunk=>{
+    if(/^utang\s+/i.test(chunk)){
+      const d = parseDebtLine(chunk);
+      if(d){ debts.push(d); } else { failed.push(chunk); }
+      return;
+    }
     const match = chunk.match(/^(.*?)(?:\s+)((?:rp)?\s?[\d.,]+\s?(?:rb|ribu|jt|juta|k)?)$/i);
     if(!match){ failed.push(chunk); return; }
     const desc = match[1].trim();
@@ -447,7 +469,7 @@ function parseFreeText(text){
     const budgetAffecting = !EXCLUDED_FROM_BUDGET.includes(cat);
     results.push({ desc, amt, cat, budgetAffecting });
   });
-  return { results, failed };
+  return { results, debts, failed };
 }
 
 let allEntries = {}; // { "2026-08-30": [{desc, amt}, ...] }
@@ -753,10 +775,10 @@ document.getElementById('addBtn').addEventListener('click', async ()=>{
     return;
   }
 
-  const { results, failed } = parseFreeText(text);
+  const { results, debts, failed } = parseFreeText(text);
 
-  if(results.length === 0){
-    errEl.textContent = 'Belum kebaca nominalnya. Coba format: kopi 10rb';
+  if(results.length === 0 && debts.length === 0){
+    errEl.textContent = 'Belum kebaca nominalnya. Coba format: kopi 10rb, atau utang lisa ke imad makan padang 47k';
     errEl.style.display = 'block';
     return;
   }
@@ -766,11 +788,21 @@ document.getElementById('addBtn').addEventListener('click', async ()=>{
     errEl.textContent = 'Sebagian kebaca, tapi ini belum: "' + failed.join('", "') + '"';
   }
 
-  const dateEl = document.getElementById('entryDate');
-  const targetDate = dateEl.value || todayStr();
-  const entries = getEntriesForDate(targetDate);
-  results.forEach(r => entries.push(r));
-  await saveData(targetDate);
+  if(results.length){
+    const dateEl = document.getElementById('entryDate');
+    const targetDate = dateEl.value || todayStr();
+    const entries = getEntriesForDate(targetDate);
+    results.forEach(r => entries.push(r));
+    await saveData(targetDate);
+  }
+
+  if(debts.length){
+    await Promise.all(debts.map(d => addDoc(debtsRef, {
+      debtor: d.debtor, creditor: d.creditor, desc: d.desc, amt: d.amt,
+      settled: false, created_at: Date.now()
+    })));
+  }
+
   inputEl.value = '';
   inputEl.focus();
   renderSelectedDay();
@@ -809,6 +841,79 @@ subscribeData(() => {
   renderSelectedDay();
   renderRecap();
 });
+
+// ==================================================================
+// ---- Rekap Utang: sumber datanya baris "utang ... ke ..." yang
+//      diketik di kolom pengeluaran, disimpan di collection Firestore
+//      terpisah (tracker_debts) — tidak pernah menyentuh angka budget.
+// ==================================================================
+let allDebts = [];
+
+onSnapshot(debtsRef, (snap) => {
+  allDebts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderDebtRecap();
+}, (err) => {
+  const panel = document.getElementById('panel-utang');
+  if(panel) panel.innerHTML = '<div class="empty">Gagal memuat data utang: ' + err.message + '</div>';
+});
+
+async function toggleDebtSettled(id, current){
+  try { await updateDoc(doc(debtsRef, id), { settled: !current }); }
+  catch (e) { alert('Gagal update: ' + e.message); }
+}
+async function deleteDebtEntry(id){
+  try { await deleteDoc(doc(debtsRef, id)); }
+  catch (e) { alert('Gagal hapus: ' + e.message); }
+}
+
+function renderDebtRecap(){
+  const panel = document.getElementById('panel-utang');
+  if(!panel) return;
+
+  if(!allDebts.length){
+    panel.innerHTML = '<div class="empty">Belum ada catatan utang. Ketik di kolom pengeluaran: "utang lisa ke imad makan padang 47k".</div>';
+    return;
+  }
+
+  const byPair = {};
+  allDebts.forEach(d => {
+    const key = d.debtor + '||' + d.creditor;
+    if(!byPair[key]) byPair[key] = { debtor: d.debtor, creditor: d.creditor, net: 0, items: [] };
+    byPair[key].items.push(d);
+    if(!d.settled) byPair[key].net += d.amt;
+  });
+
+  const pairs = Object.values(byPair).sort((a,b)=> (a.debtor+a.creditor).localeCompare(b.debtor+b.creditor));
+
+  panel.innerHTML = pairs.map(p => {
+    const items = p.items.slice().sort((a,b)=>b.created_at-a.created_at);
+    const itemsHtml = items.map(it => `
+      <div class="item" style="${it.settled ? 'opacity:.5' : ''}">
+        <span>
+          <div>${it.desc}</div>
+          <div style="font-size:.75rem;color:var(--ink-soft);">${it.settled ? 'Lunas' : 'Belum lunas'}</div>
+        </span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span>${fmt(it.amt)}</span>
+          <span class="del" data-toggle-id="${it.id}" data-toggle-settled="${it.settled}">${it.settled ? 'Batal' : 'Lunas'}</span>
+          <span class="del" data-del-id="${it.id}">Hapus</span>
+        </span>
+      </div>`).join('');
+    return `
+      <div class="recap-row static" style="border-bottom:none;padding-bottom:4px;">
+        <div class="recap-label">${p.debtor} &rarr; ${p.creditor}</div>
+        <div class="recap-amount ${p.net>0?'over':'under'}">${p.net>0?fmt(p.net):'Lunas semua'}</div>
+      </div>
+      <div style="margin-bottom:16px;display:flex;flex-direction:column;gap:6px;">${itemsHtml}</div>`;
+  }).join('');
+
+  panel.querySelectorAll('[data-toggle-id]').forEach(el => {
+    el.addEventListener('click', () => toggleDebtSettled(el.dataset.toggleId, el.dataset.toggleSettled === 'true'));
+  });
+  panel.querySelectorAll('[data-del-id]').forEach(el => {
+    el.addEventListener('click', () => { if(confirm('Hapus catatan utang ini?')) deleteDebtEntry(el.dataset.delId); });
+  });
+}
 </script>
 </body>
 </html>
