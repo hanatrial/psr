@@ -876,16 +876,48 @@ function renderDebtRecap(){
   }
 
   const byPair = {};
+  const netPerPerson = {};
   allDebts.forEach(d => {
     const key = d.debtor + '||' + d.creditor;
     if(!byPair[key]) byPair[key] = { debtor: d.debtor, creditor: d.creditor, net: 0, items: [] };
     byPair[key].items.push(d);
-    if(!d.settled) byPair[key].net += d.amt;
+    if(!d.settled){
+      byPair[key].net += d.amt;
+      netPerPerson[d.debtor] = (netPerPerson[d.debtor] || 0) - d.amt;
+      netPerPerson[d.creditor] = (netPerPerson[d.creditor] || 0) + d.amt;
+    }
   });
+
+  // Sederhanakan: siapa net-nya minus (berutang) bayar ke siapa net-nya plus (dikasih utang),
+  // digabung lintas orang jadi transaksi seminimal mungkin (gaya "simplify debts" Splitwise).
+  const creditors = Object.entries(netPerPerson).filter(([,v])=>v>0.01).map(([name,v])=>({name, amt:v})).sort((a,b)=>b.amt-a.amt);
+  const debtorsList = Object.entries(netPerPerson).filter(([,v])=>v<-0.01).map(([name,v])=>({name, amt:-v})).sort((a,b)=>b.amt-a.amt);
+  const settlements = [];
+  {
+    let ci = 0, di = 0;
+    const cr = creditors.map(c=>({...c})), db2 = debtorsList.map(d=>({...d}));
+    while(ci < cr.length && di < db2.length){
+      const pay = Math.min(cr[ci].amt, db2[di].amt);
+      settlements.push({ from: db2[di].name, to: cr[ci].name, amt: pay });
+      cr[ci].amt -= pay; db2[di].amt -= pay;
+      if(cr[ci].amt < 0.01) ci++;
+      if(db2[di].amt < 0.01) di++;
+    }
+  }
+
+  const summaryHtml = settlements.length ? `
+    <div class="eyebrow" style="margin-bottom:8px;">Ringkasan (disederhanakan)</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:22px;">
+      ${settlements.map(s => `
+        <div class="item">
+          <span>${s.from} &rarr; ${s.to}</span>
+          <span style="font-weight:700;">${fmt(s.amt)}</span>
+        </div>`).join('')}
+    </div>` : `<div class="empty" style="padding:0 0 22px;">Semua utang sudah impas / lunas.</div>`;
 
   const pairs = Object.values(byPair).sort((a,b)=> (a.debtor+a.creditor).localeCompare(b.debtor+b.creditor));
 
-  panel.innerHTML = pairs.map(p => {
+  panel.innerHTML = summaryHtml + pairs.map(p => {
     const items = p.items.slice().sort((a,b)=>b.created_at-a.created_at);
     const itemsHtml = items.map(it => `
       <div class="item" style="${it.settled ? 'opacity:.5' : ''}">
