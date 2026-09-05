@@ -257,9 +257,25 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
   </div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, setDoc, onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCA8Q8athqYIsY3By5wPxcU97GjDBR6DAs",
+  authDomain: "mds-sulawesi.firebaseapp.com",
+  projectId: "mds-sulawesi",
+  storageBucket: "mds-sulawesi.firebasestorage.app",
+  messagingSenderId: "511949021685",
+  appId: "1:511949021685:web:bc32007af0555449e7c0bc"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const expensesRef = collection(db, "tracker_expenses");
+
 const BUDGET = 150000;
-const KEY = 'expense-entries-v1';
 
 function fmt(n){
   return 'Rp' + Math.round(n).toLocaleString('id-ID');
@@ -373,26 +389,28 @@ function parseFreeText(text){
 
 let allEntries = {}; // { "2026-08-30": [{desc, amt}, ...] }
 
-async function loadData(){
-  try{
-    const raw = localStorage.getItem(KEY);
-    allEntries = raw ? JSON.parse(raw) : {};
-  }catch(e){
+// Setiap tanggal = satu dokumen Firestore (collection "tracker_expenses", ID = tanggal).
+// Pakai onSnapshot supaya data sinkron otomatis lintas perangkat/browser.
+function subscribeData(onFirstLoad){
+  let first = true;
+  onSnapshot(expensesRef, (snap) => {
     allEntries = {};
-  }
-  let changed = false;
-  Object.keys(allEntries).forEach(dateStr=>{
-    if(!allEntries[dateStr] || allEntries[dateStr].length === 0){
-      delete allEntries[dateStr];
-      changed = true;
-    }
+    snap.forEach(d => {
+      const data = d.data();
+      if(data.items && data.items.length) allEntries[d.id] = data.items;
+    });
+    if(first){ first = false; onFirstLoad(); }
+    else { renderSelectedDay(); renderRecap(); }
+  }, (err) => {
+    console.error('gagal memuat data', err);
+    if(first){ first = false; onFirstLoad(); }
   });
-  if(changed) await saveData();
 }
 
-async function saveData(){
+async function saveData(dateStr){
   try{
-    localStorage.setItem(KEY, JSON.stringify(allEntries));
+    const items = allEntries[dateStr] || [];
+    await setDoc(doc(expensesRef, dateStr), { items });
   }catch(e){
     console.error('gagal menyimpan', e);
   }
@@ -434,7 +452,7 @@ function renderSelectedDay(){
       el.addEventListener('click', async ()=>{
         allEntries[selectedDate].splice(parseInt(el.dataset.i),1);
         pruneEmptyDate(selectedDate);
-        await saveData();
+        await saveData(selectedDate);
         renderSelectedDay();
         renderRecap();
       });
@@ -514,7 +532,7 @@ function bindDayModalDeletes(dateStr){
       const idx = parseInt(delBtn.dataset.delIdx);
       allEntries[dateStr].splice(idx, 1);
       pruneEmptyDate(dateStr);
-      await saveData();
+      await saveData(dateStr);
       renderSelectedDay();
       renderRecap();
       document.getElementById('modalBody').innerHTML = buildDayDetailHtml(dateStr);
@@ -689,7 +707,7 @@ document.getElementById('addBtn').addEventListener('click', async ()=>{
   const targetDate = dateEl.value || todayStr();
   const entries = getEntriesForDate(targetDate);
   results.forEach(r => entries.push(r));
-  await saveData();
+  await saveData(targetDate);
   inputEl.value = '';
   inputEl.focus();
   renderSelectedDay();
@@ -723,12 +741,11 @@ document.querySelectorAll('.tab').forEach(tab=>{
   });
 });
 
-(async function init(){
-  await loadData();
-  document.getElementById('entryDate').value = todayStr();
+document.getElementById('entryDate').value = todayStr();
+subscribeData(() => {
   renderSelectedDay();
   renderRecap();
-})();
+});
 </script>
 </body>
 </html>
