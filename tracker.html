@@ -311,13 +311,22 @@ const GATE_KEY = 'tracker-unlocked';
 if(sessionStorage.getItem(GATE_KEY) === '1'){
   document.body.classList.remove('locked');
 }
-document.getElementById('gateForm').addEventListener('submit', (e) => {
-  e.preventDefault();
+function tryUnlock(){
   const val = document.getElementById('gatePw').value;
   if(val === GATE_PW){
     sessionStorage.setItem(GATE_KEY, '1');
     document.body.classList.remove('locked');
-  } else {
+    return true;
+  }
+  return false;
+}
+document.getElementById('gatePw').addEventListener('input', () => {
+  document.getElementById('gateErr').style.display = 'none';
+  if(document.getElementById('gatePw').value.length >= GATE_PW.length) tryUnlock();
+});
+document.getElementById('gateForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if(!tryUnlock()){
     document.getElementById('gateErr').style.display = 'block';
     document.getElementById('gatePw').value = '';
     document.getElementById('gatePw').focus();
