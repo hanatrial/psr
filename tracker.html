@@ -2,28 +2,195 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Tracker — Serbu Pasar Sulawesi</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker Pengeluaran Harian</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#0b0f17; --surface:#121826; --card:#182036; --border:#242e46;
-    --text:#e9edf5; --text2:#8d97b3; --text3:#525d78;
+    --bg:#F6F4EF;
+    --card:#FFFFFF;
+    --ink:#22201B;
+    --ink-soft:#6B6558;
+    --line:#E4E0D6;
+    --accent:#B5651D;
+    --accent-soft:#F0DFCB;
+    --danger:#B23B3B;
+    --danger-soft:#F5DEDE;
+    --good:#3B6B4F;
+    --good-soft:#DEEBE2;
+    --radius:14px;
   }
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
-  .wrap{max-width:640px;margin:0 auto;padding:40px 20px}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding:20px 14px 60px;
+  }
+  .wrap{max-width:480px;margin:0 auto;}
 
-  .page-toggle{display:flex;background:var(--card);border:1px solid var(--border);border-radius:9px;
-    padding:3px;gap:3px;margin-bottom:28px}
+  .page-toggle{display:flex;background:var(--card);border:1px solid var(--line);border-radius:9px;
+    padding:3px;gap:3px;margin-bottom:20px}
   .pt-btn{flex:1;text-align:center;padding:9px 10px;border-radius:6px;font-size:12.5px;font-weight:600;
-    color:var(--text3);text-decoration:none;transition:background .15s,color .15s}
-  .pt-btn:hover{color:var(--text2)}
-  .pt-btn.active{background:#ffb454;color:#1a1006}
+    color:var(--ink-soft);text-decoration:none;transition:background .15s,color .15s}
+  .pt-btn:hover{color:var(--ink)}
+  .pt-btn.active{background:var(--accent);color:#fff}
 
-  .empty{border:1px dashed var(--border);border-radius:14px;padding:60px 24px;text-align:center;margin-top:20px}
-  .empty h1{font-size:18px;font-weight:700;margin-bottom:8px;font-family:Georgia,serif}
-  .empty p{font-size:13px;color:var(--text3);line-height:1.6}
+  header{margin-bottom:18px;}
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  h1{font-size:22px;margin:0;font-weight:700;}
+  .date{color:var(--ink-soft);font-size:13px;margin-top:4px;}
+
+  .hero{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:14px;
+  }
+  .hero-label{font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+  .hero-amount{font-size:34px;font-weight:700;line-height:1.1;}
+  .hero-amount.over{color:var(--danger);}
+  .bar-track{height:10px;background:var(--accent-soft);border-radius:6px;margin-top:14px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--accent);border-radius:6px;transition:width .25s ease;}
+  .bar-fill.warn{background:#C7861F;}
+  .bar-fill.over{background:var(--danger);}
+  .hero-sub{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-top:8px;}
+
+  .input-row{display:flex;gap:8px;margin-bottom:12px;}
+  input[type=text],input[type=number],input[type=date]{
+    border:1px solid var(--line);
+    background:var(--card);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:14px;
+    color:var(--ink);
+  }
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+  #desc{flex:1.4;}
+  #amt{flex:1;}
+  button{
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    font-weight:600;
+    font-size:14px;
+    padding:0 16px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  button:active{transform:scale(.97);}
+  button.ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    font-weight:500;
+  }
+
+  .error{color:var(--danger);font-size:12px;margin:-6px 0 10px;display:none;}
+
+  .list{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
+  .item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:14px;
+  }
+  .item .del{color:var(--ink-soft);cursor:pointer;font-size:13px;padding:2px 6px;}
+  .item .del:hover{color:var(--danger);}
+  .del{color:var(--ink-soft);cursor:pointer;font-size:12px;}
+  .del:hover{color:var(--danger);}
+  .empty{color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;}
+
+  .tabs{display:flex;gap:6px;margin:26px 0 12px;border-bottom:1px solid var(--line);}
+  .tab{
+    padding:8px 4px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    margin-right:14px;
+  }
+  .tab.active{color:var(--ink);border-color:var(--accent);}
+
+  .recap-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    font-size:14px;
+    cursor:pointer;
+  }
+  .recap-row:last-child{border-bottom:none;}
+  .recap-row.static{cursor:default;}
+  .recap-label{font-weight:600;}
+  .recap-sub{font-size:12px;color:var(--ink-soft);}
+  .recap-amount.over{color:var(--danger);font-weight:600;}
+  .recap-amount.under{color:var(--good);font-weight:600;}
+  .recap-badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:600;
+    padding:2px 8px;
+    border-radius:20px;
+    margin-top:2px;
+  }
+  .recap-badge.over{background:var(--danger-soft);color:var(--danger);}
+  .recap-badge.under{background:var(--good-soft);color:var(--good);}
+  .recap-detail{
+    background:var(--bg);
+    border-radius:10px;
+    padding:10px 12px;
+    margin:-4px 0 8px;
+    font-size:13px;
+  }
+  .recap-detail-row{padding:7px 0;}
+  .recap-detail-top{display:flex;justify-content:space-between;margin-bottom:4px;}
+  .recap-detail-name{font-weight:500;}
+  .recap-detail-pct{color:var(--ink-soft);font-size:11px;margin-left:4px;}
+  .recap-detail-bar-track{height:6px;background:var(--line);border-radius:4px;overflow:hidden;}
+  .recap-detail-bar-fill{height:100%;background:var(--accent);border-radius:4px;}
+  .chevron{color:var(--ink-soft);font-size:12px;margin-left:8px;}
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.4);
+    display:flex; align-items:flex-end; justify-content:center;
+    z-index:100;
+  }
+  .modal-sheet{
+    background:var(--card);
+    width:100%; max-width:480px;
+    max-height:80vh;
+    border-radius:16px 16px 0 0;
+    padding:16px 18px 24px;
+    overflow-y:auto;
+  }
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .modal-title{font-size:16px;font-weight:700;}
+  .modal-close{font-size:20px;color:var(--ink-soft);cursor:pointer;padding:2px 8px;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .footnote{
+    text-align:center;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:30px;
+  }
 </style>
 </head>
 <body>
@@ -34,10 +201,534 @@
     <a href="tracker.html" class="pt-btn active">Tracker</a>
   </div>
 
-  <div class="empty">
-    <h1>Halaman ini masih kosong</h1>
-    <p>Belum ada konten di sini. Kasih tahu mau diisi apa, nanti dibangun.</p>
+  <header>
+    <div class="eyebrow">Tracker pengeluaran</div>
+    <h1>Budget harian Rp150.000</h1>
+    <div class="date" id="todayLabel"></div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-label" id="heroLabel">Sisa budget hari ini</div>
+    <div class="hero-amount" id="remainingAmt">Rp150.000</div>
+    <div class="bar-track"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+    <div class="hero-sub">
+      <span id="spentLabel">Keluar Rp0</span>
+      <span id="budgetLabel">dari Rp150.000</span>
+    </div>
+    <div id="nonBudgetNote" style="font-size:11px;color:var(--ink-soft);margin-top:6px;display:none;"></div>
+  </div>
+
+  <div class="input-row" style="flex-direction:column;gap:6px;">
+    <label style="font-size:12px;color:var(--ink-soft);">Tanggal pengeluaran</label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="date" id="entryDate" style="flex:1;">
+      <button id="resetDateBtn" type="button" style="flex:0 0 auto;padding:0 12px;height:38px;font-size:12px;">Hari ini</button>
+    </div>
+    <textarea id="freeInput" placeholder="kopi 20k
+makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--ink);font-family:inherit;"></textarea>
+  </div>
+  <div class="error" id="errMsg"></div>
+  <button id="addBtn" style="width:100%;padding:10px 0;margin-bottom:6px;">Tambah pengeluaran</button>
+  <div style="font-size:11px;color:var(--ink-soft);margin-bottom:16px;">Satu item per baris, contoh: "kopi 20k" lalu Enter, "makan 20k" di baris baru. Ganti tanggal di atas untuk lihat/isi hari lain — semua di halaman ini (sisa budget & daftar pengeluaran) ikut berubah sesuai tanggal yang dipilih.</div>
+
+  <div class="list" id="list"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="bulan">Rekap bulan</div>
+    <div class="tab" data-tab="tahun">Rekap tahun</div>
+  </div>
+
+  <div class="panel active" id="panel-bulan">
+    <select id="monthSelect" style="width:100%;margin-bottom:12px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--ink);"></select>
+    <div id="panel-bulan-content"></div>
+  </div>
+  <div class="panel" id="panel-tahun"></div>
+
+  <div class="footnote">Data tersimpan otomatis di perangkat/browser ini. Kartu di atas & daftar pengeluaran ngikutin tanggal yang dipilih. Sisa budget tiap tanggal otomatis nambah/ngurangin budget tanggal berikutnya (rolling).</div>
+</div>
+
+<div id="modalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-close" id="modalClose">&times;</div>
+    </div>
+    <div id="modalBody"></div>
   </div>
 </div>
+
+<script>
+const BUDGET = 150000;
+const KEY = 'expense-entries-v1';
+
+function fmt(n){
+  return 'Rp' + Math.round(n).toLocaleString('id-ID');
+}
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function monthKey(dateStr){ return dateStr.slice(0,7); }
+function yearKey(dateStr){ return dateStr.slice(0,4); }
+
+const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+const CATEGORY_MAP = [
+  { cat:'Jajan', words:['kopi','jajan','snack','boba','cemilan','gorengan','es teh','teh','kue','roti','martabak','cireng'] },
+  { cat:'Makan', words:['makan','nasi','warteg','gofood','grabfood','ayam','soto','bakso','mie','sate','padang','gado','lontong','sarapan','sushi','pizza'] },
+  { cat:'Transport', words:['parkir','bensin','ojol','grab','gojek','tol','busway','angkot','taxi','taksi','pertamax','pertalite'] },
+  { cat:'Tagihan', words:['pulsa','token','listrik','wifi','internet','paket data','pdam','bpjs'] },
+  { cat:'Rokok', words:['rokok','vape'] },
+  { cat:'Kesehatan', words:['susu protein','vitamin','obat','suplemen','protein'] },
+  { cat:'Perawatan diri', words:['skincare','sabun','shampo','shampoo','odol','kapas','facewash','face wash','sikat gigi'] },
+  { cat:'Rumah tangga', words:['laundry','deterjen','tisu','galon'] },
+  { cat:'Olahraga', words:['padel','gym','lari','renang','futsal','badminton','olahraga'] },
+  { cat:'Tempat tinggal', words:['kos','kost','kontrakan','sewa rumah','sewa kamar'] },
+  { cat:'Belanja', words:['belanja','indomaret','alfamart','minimarket'] },
+];
+
+// Kategori yang dicatat tapi tidak memotong budget harian (bukan pengeluaran harian).
+const EXCLUDED_FROM_BUDGET = ['Tagihan', 'Tempat tinggal'];
+
+function getDateRange(startStr, endStr){
+  const dates = [];
+  let cur = new Date(startStr + 'T00:00:00');
+  const end = new Date(endStr + 'T00:00:00');
+  while(cur <= end){
+    const y = cur.getFullYear(), m = String(cur.getMonth()+1).padStart(2,'0'), d = String(cur.getDate()).padStart(2,'0');
+    dates.push(`${y}-${m}-${d}`);
+    cur.setDate(cur.getDate()+1);
+  }
+  return dates;
+}
+
+// Menghitung budget berjalan tiap hari: sisa hari sebelumnya (bisa minus) terbawa ke hari berikutnya.
+function computeDailyBudgets(){
+  const t = todayStr();
+  const allDates = Object.keys(allEntries);
+  const earliest = allDates.length ? allDates.sort()[0] : t;
+  const latest = allDates.length ? allDates.sort().slice(-1)[0] : t;
+  const end = latest > t ? latest : t;
+  const range = getDateRange(earliest, end);
+
+  const map = {};
+  let carry = 0;
+  range.forEach(dateStr=>{
+    const entries = allEntries[dateStr] || [];
+    const budgetEntries = entries.filter(it => it.budgetAffecting !== false);
+    const spent = budgetEntries.reduce((s,it)=>s+it.amt,0);
+    const nonBudgetSpent = entries.filter(it => it.budgetAffecting === false).reduce((s,it)=>s+it.amt,0);
+    const budget = BUDGET + carry;
+    const remaining = budget - spent;
+    map[dateStr] = { budget, spent, nonBudgetSpent, remaining, count: entries.length };
+    carry = remaining;
+  });
+  return map;
+}
+
+function categorize(desc){
+  const d = desc.toLowerCase();
+  for(const c of CATEGORY_MAP){
+    if(c.words.some(w => d.includes(w))) return c.cat;
+  }
+  return 'Lainnya';
+}
+
+function parseAmount(str){
+  let s = str.toLowerCase().trim();
+  s = s.replace(/rp/g,'').trim();
+  let mult = 1;
+  if(/jt|juta/.test(s)){ mult = 1000000; s = s.replace(/jt|juta/g,''); }
+  else if(/rb|ribu|k\b/.test(s)){ mult = 1000; s = s.replace(/rb|ribu|k\b/g,''); }
+  s = s.trim().replace(/,/g,'.');
+  // if multiple dots, treat all but last as thousand separators when no multiplier word matched
+  if(mult === 1){
+    const parts = s.split('.');
+    if(parts.length > 1 && parts[parts.length-1].length === 3){
+      s = parts.join('');
+    }
+  }
+  const num = parseFloat(s);
+  if(isNaN(num)) return null;
+  return num * mult;
+}
+
+function parseFreeText(text){
+  const chunks = text.split(/,|\n/).map(c=>c.trim()).filter(Boolean);
+  const results = [];
+  const failed = [];
+  chunks.forEach(chunk=>{
+    const match = chunk.match(/^(.*?)(?:\s+)((?:rp)?\s?[\d.,]+\s?(?:rb|ribu|jt|juta|k)?)$/i);
+    if(!match){ failed.push(chunk); return; }
+    const desc = match[1].trim();
+    const amt = parseAmount(match[2]);
+    if(!desc || amt === null || amt <= 0){ failed.push(chunk); return; }
+    const cat = categorize(desc);
+    const budgetAffecting = !EXCLUDED_FROM_BUDGET.includes(cat);
+    results.push({ desc, amt, cat, budgetAffecting });
+  });
+  return { results, failed };
+}
+
+let allEntries = {}; // { "2026-08-30": [{desc, amt}, ...] }
+
+async function loadData(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    allEntries = raw ? JSON.parse(raw) : {};
+  }catch(e){
+    allEntries = {};
+  }
+  let changed = false;
+  Object.keys(allEntries).forEach(dateStr=>{
+    if(!allEntries[dateStr] || allEntries[dateStr].length === 0){
+      delete allEntries[dateStr];
+      changed = true;
+    }
+  });
+  if(changed) await saveData();
+}
+
+async function saveData(){
+  try{
+    localStorage.setItem(KEY, JSON.stringify(allEntries));
+  }catch(e){
+    console.error('gagal menyimpan', e);
+  }
+}
+
+function getEntriesForDate(dateStr){
+  if(!allEntries[dateStr]) allEntries[dateStr] = [];
+  return allEntries[dateStr];
+}
+function peekEntriesForDate(dateStr){
+  return allEntries[dateStr] || [];
+}
+function pruneEmptyDate(dateStr){
+  if(allEntries[dateStr] && allEntries[dateStr].length === 0){
+    delete allEntries[dateStr];
+  }
+}
+function getTodayEntries(){
+  return getEntriesForDate(todayStr());
+}
+
+function renderSelectedDay(){
+  const selectedDate = document.getElementById('entryDate').value || todayStr();
+  const t = todayStr();
+  const entries = peekEntriesForDate(selectedDate);
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  if(entries.length === 0){
+    list.innerHTML = '<div class="empty">Belum ada pengeluaran tanggal ini.</div>';
+  }else{
+    entries.forEach((it, i) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML = `<span><div>${it.desc}</div><div style="font-size:11px;color:var(--ink-soft);">${it.cat || 'Lainnya'}${it.budgetAffecting===false ? ' &middot; di luar budget' : ''}</div></span><span style="display:flex;align-items:center;gap:10px;"><span>${fmt(it.amt)}</span><span class="del" data-i="${i}">Hapus</span></span>`;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.del').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        allEntries[selectedDate].splice(parseInt(el.dataset.i),1);
+        pruneEmptyDate(selectedDate);
+        await saveData();
+        renderSelectedDay();
+        renderRecap();
+      });
+    });
+  }
+
+  const dailyMap = computeDailyBudgets();
+  const info = dailyMap[selectedDate];
+  const total = info.spent;
+  const dayBudget = info.budget;
+  const remaining = info.remaining;
+  const remEl = document.getElementById('remainingAmt');
+  const barFill = document.getElementById('barFill');
+  const pct = Math.min((total/dayBudget)*100,100);
+
+  document.getElementById('spentLabel').textContent = 'Keluar ' + fmt(total);
+  document.getElementById('budgetLabel').textContent = 'dari ' + fmt(dayBudget);
+
+  if(remaining < 0){
+    remEl.textContent = fmt(0) + ' (lebih ' + fmt(-remaining) + ')';
+    remEl.classList.add('over');
+    barFill.classList.add('over');
+    barFill.classList.remove('warn');
+  }else{
+    remEl.textContent = fmt(remaining);
+    remEl.classList.remove('over');
+    barFill.classList.remove('over');
+    if(pct > 80) barFill.classList.add('warn'); else barFill.classList.remove('warn');
+  }
+  barFill.style.width = pct + '%';
+
+  const nonBudgetNote = document.getElementById('nonBudgetNote');
+  if(info.nonBudgetSpent > 0){
+    nonBudgetNote.textContent = 'Di luar budget tanggal ini: ' + fmt(info.nonBudgetSpent) + ' (Tagihan/Tempat tinggal, tidak motong budget harian)';
+    nonBudgetNote.style.display = 'block';
+  }else{
+    nonBudgetNote.style.display = 'none';
+  }
+
+  const dObj = new Date(selectedDate + 'T00:00:00');
+  const suffix = selectedDate === t ? ' (hari ini)' : (selectedDate > t ? ' (belum lewat)' : ' (sudah lewat)');
+  document.getElementById('todayLabel').textContent = dayNames[dObj.getDay()] + ', ' + dObj.getDate() + ' ' + monthNames[dObj.getMonth()] + ' ' + dObj.getFullYear() + suffix;
+  document.getElementById('heroLabel').textContent = selectedDate === t ? 'Sisa budget hari ini' : 'Sisa budget tanggal ini';
+}
+
+function openModal(title, bodyHtml){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+function closeModal(){
+  document.getElementById('modalOverlay').style.display = 'none';
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'modalOverlay') closeModal();
+});
+
+function buildDayDetailHtml(dateStr){
+  const dayEntries = allEntries[dateStr] || [];
+  const dayTotal = dayEntries.reduce((s,it)=>s+it.amt,0);
+  const sortedIdx = dayEntries.map((it,origIdx)=>({it,origIdx})).sort((a,b)=>b.it.amt-a.it.amt);
+  let rowsHtml = sortedIdx.map(({it,origIdx}) => {
+    const pct = dayTotal > 0 ? Math.round((it.amt/dayTotal)*100) : 0;
+    return `<div class="recap-detail-row">
+      <div class="recap-detail-top"><span class="recap-detail-name">${it.desc} <span style="color:var(--ink-soft);font-weight:400;">&middot; ${it.cat}</span></span><span>${fmt(it.amt)}<span class="recap-detail-pct">${pct}%</span> <span class="del" data-del-date="${dateStr}" data-del-idx="${origIdx}" style="margin-left:6px;">Hapus</span></span></div>
+      <div class="recap-detail-bar-track"><div class="recap-detail-bar-fill" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('');
+  if(!rowsHtml) rowsHtml = '<div class="recap-detail-row"><span style="color:var(--ink-soft);">Tidak ada transaksi.</span></div>';
+  return rowsHtml;
+}
+
+function bindDayModalDeletes(dateStr){
+  document.getElementById('modalBody').querySelectorAll('[data-del-date]').forEach(delBtn=>{
+    delBtn.addEventListener('click', async ()=>{
+      const idx = parseInt(delBtn.dataset.delIdx);
+      allEntries[dateStr].splice(idx, 1);
+      pruneEmptyDate(dateStr);
+      await saveData();
+      renderSelectedDay();
+      renderRecap();
+      document.getElementById('modalBody').innerHTML = buildDayDetailHtml(dateStr);
+      bindDayModalDeletes(dateStr);
+    }, {once:true});
+  });
+}
+
+function openDayModal(dateStr){
+  const dObj = new Date(dateStr + 'T00:00:00');
+  const label = dObj.getDate() + ' ' + monthNames[dObj.getMonth()] + ' ' + dObj.getFullYear();
+  openModal(label, buildDayDetailHtml(dateStr));
+  bindDayModalDeletes(dateStr);
+}
+
+function buildMonthCategoryHtml(agg){
+  const catEntries = Object.entries(agg.byCat).sort((a,b)=>b[1]-a[1]);
+  const catTotalAll = catEntries.reduce((s,[,v])=>s+v,0);
+  let rowsHtml = catEntries.map(([cat, amt]) => {
+    const pct = catTotalAll > 0 ? Math.round((amt/catTotalAll)*100) : 0;
+    return `<div class="recap-detail-row">
+      <div class="recap-detail-top"><span class="recap-detail-name">${cat}</span><span>${fmt(amt)}<span class="recap-detail-pct">${pct}%</span></span></div>
+      <div class="recap-detail-bar-track"><div class="recap-detail-bar-fill" style="width:${pct}%;"></div></div>
+    </div>`;
+  }).join('');
+  if(!rowsHtml) rowsHtml = '<div class="recap-detail-row"><span style="color:var(--ink-soft);">Tidak ada transaksi.</span></div>';
+  return rowsHtml;
+}
+
+function populateMonthSelect(dailyMap){
+  const selectEl = document.getElementById('monthSelect');
+  const currentVal = selectEl.value;
+  const t = todayStr();
+  const monthSet = new Set(Object.keys(dailyMap).map(monthKey));
+  monthSet.add(monthKey(t));
+  const monthList = Array.from(monthSet).sort().reverse();
+  selectEl.innerHTML = monthList.map(mk=>{
+    const monIdx = parseInt(mk.slice(5,7))-1;
+    const yr = mk.slice(0,4);
+    return `<option value="${mk}">${monthNames[monIdx]} ${yr}</option>`;
+  }).join('');
+  selectEl.value = monthList.includes(currentVal) ? currentVal : monthKey(t);
+}
+
+function renderMonthPanel(dailyMap, mKey){
+  const panelBulanContent = document.getElementById('panel-bulan-content');
+  const daysInMonth = Object.keys(dailyMap).filter(d => d.startsWith(mKey)).sort().reverse();
+  const monIdx = parseInt(mKey.slice(5,7))-1;
+
+  if(daysInMonth.length === 0){
+    panelBulanContent.innerHTML = '<div class="empty">Belum ada data bulan ini.</div>';
+    return;
+  }
+  let totalBulan = 0, budgetBulan = 0, nonBudgetBulan = 0;
+  let rows = '';
+  daysInMonth.forEach((dateStr)=>{
+    const info = dailyMap[dateStr];
+    totalBulan += info.spent;
+    nonBudgetBulan += info.nonBudgetSpent;
+    budgetBulan += BUDGET;
+    if(info.count === 0) return;
+    const dObj = new Date(dateStr + 'T00:00:00');
+    const label = dObj.getDate() + ' ' + monthNames[dObj.getMonth()];
+    rows += `<div class="recap-row" data-day="${dateStr}">
+      <div><div class="recap-label">${label}</div><div class="recap-sub">${info.count} transaksi &middot; budget ${fmt(info.budget)}</div></div>
+      <div style="display:flex;align-items:center;"><div class="recap-amount ${info.remaining<0?'over':'under'}">${fmt(info.spent)}</div><span class="chevron">&#8250;</span></div>
+    </div>`;
+  });
+  panelBulanContent.innerHTML = `
+    <div class="recap-row static">
+      <div class="recap-label">Total keluar bulan ${monthNames[monIdx]}</div>
+      <div class="recap-amount ${totalBulan>budgetBulan?'over':'under'}">${fmt(totalBulan)}</div>
+    </div>
+    <div class="recap-row static" style="border-bottom:2px solid var(--line);">
+      <div><div class="recap-sub">Total budget (${daysInMonth.length} hari &times; 150rb)</div><div>${budgetBulan-totalBulan<0 ? `<span class="recap-badge over">Minus ${fmt(totalBulan-budgetBulan)}</span>` : `<span class="recap-badge under">Sisa ${fmt(budgetBulan-totalBulan)}</span>`}</div></div>
+      <div class="recap-amount ${totalBulan>budgetBulan?'over':'under'}">${fmt(budgetBulan)}</div>
+    </div>
+    ${nonBudgetBulan > 0 ? `<div class="recap-row static"><div class="recap-sub">Di luar budget (Tagihan/Tempat tinggal)</div><div class="recap-sub">${fmt(nonBudgetBulan)}</div></div>` : ''}
+    ${rows || '<div class="empty">Belum ada transaksi bulan ini.</div>'}`;
+  panelBulanContent.querySelectorAll('[data-day]').forEach(row=>{
+    row.addEventListener('click', ()=> openDayModal(row.dataset.day));
+  });
+}
+
+function renderRecap(){
+  const t = todayStr();
+  const yKey = yearKey(t);
+  const dailyMap = computeDailyBudgets();
+
+  populateMonthSelect(dailyMap);
+  renderMonthPanel(dailyMap, document.getElementById('monthSelect').value);
+
+  const panelTahun = document.getElementById('panel-tahun');
+  const monthsAgg = {};
+  Object.keys(dailyMap).filter(d=>d.startsWith(yKey)).forEach(d=>{
+    const mk = monthKey(d);
+    if(!monthsAgg[mk]) monthsAgg[mk] = { spent:0, budget:0, days:0, txCount:0, daysWithTx:0, byCat:{} };
+    monthsAgg[mk].spent += dailyMap[d].spent;
+    monthsAgg[mk].budget += BUDGET;
+    monthsAgg[mk].days += 1;
+    monthsAgg[mk].txCount += dailyMap[d].count;
+    if(dailyMap[d].count > 0) monthsAgg[mk].daysWithTx += 1;
+    (allEntries[d] || []).forEach(it=>{
+      const cat = it.cat || 'Lainnya';
+      monthsAgg[mk].byCat[cat] = (monthsAgg[mk].byCat[cat] || 0) + it.amt;
+    });
+  });
+  const allMonthKeys = Object.keys(monthsAgg);
+  const totalBudgetTahunAll = allMonthKeys.reduce((s,mk)=>s+monthsAgg[mk].budget,0);
+  const totalDaysTahunAll = allMonthKeys.reduce((s,mk)=>s+monthsAgg[mk].days,0);
+  const monthKeysList = Object.keys(monthsAgg).filter(mk => monthsAgg[mk].txCount > 0).sort().reverse();
+
+  if(monthKeysList.length===0){
+    panelTahun.innerHTML = '<div class="empty">Belum ada data tahun ini.</div>';
+  }else{
+    let totalTahun = 0;
+    let rows = '';
+    monthKeysList.forEach((mk)=>{
+      const agg = monthsAgg[mk];
+      totalTahun += agg.spent;
+      const monIdx = parseInt(mk.slice(5,7))-1;
+      rows += `<div class="recap-row" data-month="${mk}">
+        <div><div class="recap-label">${monthNames[monIdx]}</div><div class="recap-sub">${agg.daysWithTx} hari tercatat</div></div>
+        <div style="display:flex;align-items:center;"><div class="recap-amount ${agg.spent>agg.budget?'over':'under'}">${fmt(agg.spent)}</div><span class="chevron">&#8250;</span></div>
+      </div>`;
+    });
+    panelTahun.innerHTML = `
+      <div class="recap-row static">
+        <div class="recap-label">Total keluar tahun ${yKey}</div>
+        <div class="recap-amount ${totalTahun>totalBudgetTahunAll?'over':'under'}">${fmt(totalTahun)}</div>
+      </div>
+      <div class="recap-row static" style="border-bottom:2px solid var(--line);">
+        <div><div class="recap-sub">Total budget (${totalDaysTahunAll} hari &times; 150rb)</div><div>${totalBudgetTahunAll-totalTahun<0 ? `<span class="recap-badge over">Minus ${fmt(totalTahun-totalBudgetTahunAll)}</span>` : `<span class="recap-badge under">Sisa ${fmt(totalBudgetTahunAll-totalTahun)}</span>`}</div></div>
+        <div class="recap-amount ${totalTahun>totalBudgetTahunAll?'over':'under'}">${fmt(totalBudgetTahunAll)}</div>
+      </div>
+      ${rows}`;
+    panelTahun.querySelectorAll('[data-month]').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const mk = row.dataset.month;
+        const monIdx = parseInt(mk.slice(5,7))-1;
+        openModal(monthNames[monIdx] + ' ' + mk.slice(0,4), buildMonthCategoryHtml(monthsAgg[mk]));
+      });
+    });
+  }
+}
+
+document.getElementById('addBtn').addEventListener('click', async ()=>{
+  const inputEl = document.getElementById('freeInput');
+  const errEl = document.getElementById('errMsg');
+  const text = inputEl.value.trim();
+
+  if(!text){
+    errEl.textContent = 'Tulis pengeluarannya dulu, contoh: kopi 10rb';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const { results, failed } = parseFreeText(text);
+
+  if(results.length === 0){
+    errEl.textContent = 'Belum kebaca nominalnya. Coba format: kopi 10rb';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display = failed.length ? 'block' : 'none';
+  if(failed.length){
+    errEl.textContent = 'Sebagian kebaca, tapi ini belum: "' + failed.join('", "') + '"';
+  }
+
+  const dateEl = document.getElementById('entryDate');
+  const targetDate = dateEl.value || todayStr();
+  const entries = getEntriesForDate(targetDate);
+  results.forEach(r => entries.push(r));
+  await saveData();
+  inputEl.value = '';
+  inputEl.focus();
+  renderSelectedDay();
+  renderRecap();
+});
+
+document.getElementById('freeInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && (e.metaKey || e.ctrlKey)) document.getElementById('addBtn').click();
+});
+
+document.getElementById('entryDate').addEventListener('change', ()=>{
+  renderSelectedDay();
+});
+
+document.getElementById('resetDateBtn').addEventListener('click', ()=>{
+  document.getElementById('entryDate').value = todayStr();
+  renderSelectedDay();
+});
+
+document.getElementById('monthSelect').addEventListener('change', ()=>{
+  const dailyMap = computeDailyBudgets();
+  renderMonthPanel(dailyMap, document.getElementById('monthSelect').value);
+});
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+(async function init(){
+  await loadData();
+  document.getElementById('entryDate').value = todayStr();
+  renderSelectedDay();
+  renderRecap();
+})();
+</script>
 </body>
 </html>
