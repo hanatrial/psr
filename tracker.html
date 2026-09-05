@@ -875,14 +875,9 @@ function renderDebtRecap(){
     return;
   }
 
-  const byPair = {};
   const netPerPerson = {};
   allDebts.forEach(d => {
-    const key = d.debtor + '||' + d.creditor;
-    if(!byPair[key]) byPair[key] = { debtor: d.debtor, creditor: d.creditor, net: 0, items: [] };
-    byPair[key].items.push(d);
     if(!d.settled){
-      byPair[key].net += d.amt;
       netPerPerson[d.debtor] = (netPerPerson[d.debtor] || 0) - d.amt;
       netPerPerson[d.creditor] = (netPerPerson[d.creditor] || 0) + d.amt;
     }
@@ -915,29 +910,17 @@ function renderDebtRecap(){
         </div>`).join('')}
     </div>` : `<div class="empty" style="padding:0 0 22px;">Semua utang sudah impas / lunas.</div>`;
 
-  const pairs = Object.values(byPair).sort((a,b)=> (a.debtor+a.creditor).localeCompare(b.debtor+b.creditor));
+  const allItems = allDebts.slice().sort((a,b)=>b.created_at-a.created_at);
+  const detailHtml = allItems.map(it => `
+    <div class="item" style="${it.settled ? 'opacity:.5' : ''}">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.debtor} &rarr; ${it.creditor}, ${it.desc} ${fmt(it.amt)}</span>
+      <span style="display:flex;align-items:center;gap:10px;flex:0 0 auto;">
+        <span class="del" data-toggle-id="${it.id}" data-toggle-settled="${it.settled}">${it.settled ? 'Batal' : 'Lunas'}</span>
+        <span class="del" data-del-id="${it.id}">Hapus</span>
+      </span>
+    </div>`).join('');
 
-  panel.innerHTML = summaryHtml + pairs.map(p => {
-    const items = p.items.slice().sort((a,b)=>b.created_at-a.created_at);
-    const itemsHtml = items.map(it => `
-      <div class="item" style="${it.settled ? 'opacity:.5' : ''}">
-        <span>
-          <div>${it.desc}</div>
-          <div style="font-size:.75rem;color:var(--ink-soft);">${it.settled ? 'Lunas' : 'Belum lunas'}</div>
-        </span>
-        <span style="display:flex;align-items:center;gap:10px;">
-          <span>${fmt(it.amt)}</span>
-          <span class="del" data-toggle-id="${it.id}" data-toggle-settled="${it.settled}">${it.settled ? 'Batal' : 'Lunas'}</span>
-          <span class="del" data-del-id="${it.id}">Hapus</span>
-        </span>
-      </div>`).join('');
-    return `
-      <div class="recap-row static" style="border-bottom:none;padding-bottom:4px;">
-        <div class="recap-label">${p.debtor} &rarr; ${p.creditor}</div>
-        <div class="recap-amount ${p.net>0?'over':'under'}">${p.net>0?fmt(p.net):'Lunas semua'}</div>
-      </div>
-      <div style="margin-bottom:16px;display:flex;flex-direction:column;gap:6px;">${itemsHtml}</div>`;
-  }).join('');
+  panel.innerHTML = summaryHtml + `<div style="display:flex;flex-direction:column;gap:6px;">${detailHtml}</div>`;
 
   panel.querySelectorAll('[data-toggle-id]').forEach(el => {
     el.addEventListener('click', () => toggleDebtSettled(el.dataset.toggleId, el.dataset.toggleSettled === 'true'));
