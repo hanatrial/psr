@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tracker Pengeluaran Harian</title>
+<link rel="manifest" href="manifest-tracker.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#B5651D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tracker Uang">
 <style>
   :root{
     --bg:#F6F4EF;
@@ -191,15 +198,38 @@
     color:var(--ink-soft);
     margin-top:30px;
   }
+
+  .gate{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;
+    align-items:center;justify-content:center;padding:20px}
+  .gate-box{width:100%;max-width:300px;text-align:center}
+  .gate-box .eyebrow{margin-bottom:10px}
+  .gate-box h2{font-size:17px;font-weight:700;margin-bottom:18px}
+  .gate-box input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);font-size:16px;outline:none;text-align:center;
+    letter-spacing:.15em;margin-bottom:12px;box-sizing:border-box}
+  .gate-box input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .gate-box button{width:100%;padding:0;height:44px;border-radius:10px;border:none;background:var(--accent);
+    color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  .gate-box button:active{transform:scale(.97)}
+  .gate-err{color:var(--danger);font-size:12px;margin-top:10px;display:none}
+  body.locked .wrap{display:none}
 </style>
 </head>
-<body>
-<div class="wrap">
-  <div class="page-toggle">
-    <a href="index.html" class="pt-btn">Peta Sebaran</a>
-    <a href="tuset.html" class="pt-btn">Tuset</a>
-    <a href="tracker.html" class="pt-btn active">Tracker</a>
+<body class="locked">
+
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <div class="eyebrow">Akses Terbatas</div>
+    <h2>Masukkan Password</h2>
+    <form id="gateForm">
+      <input type="password" id="gatePw" inputmode="numeric" placeholder="••••••" autocomplete="off" autofocus>
+      <button type="submit">Masuk</button>
+      <div class="gate-err" id="gateErr">Password salah.</div>
+    </form>
   </div>
+</div>
+
+<div class="wrap">
 
   <header>
     <div class="eyebrow">Tracker pengeluaran</div>
@@ -274,6 +304,25 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const expensesRef = collection(db, "tracker_expenses");
+
+// ---- Gate password ----
+const GATE_PW = '194040';
+const GATE_KEY = 'tracker-unlocked';
+if(sessionStorage.getItem(GATE_KEY) === '1'){
+  document.body.classList.remove('locked');
+}
+document.getElementById('gateForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const val = document.getElementById('gatePw').value;
+  if(val === GATE_PW){
+    sessionStorage.setItem(GATE_KEY, '1');
+    document.body.classList.remove('locked');
+  } else {
+    document.getElementById('gateErr').style.display = 'block';
+    document.getElementById('gatePw').value = '';
+    document.getElementById('gatePw').focus();
+  }
+});
 
 const BUDGET = 150000;
 
