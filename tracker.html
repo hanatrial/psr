@@ -909,17 +909,32 @@ function renderDebtRecap(){
         </div>`).join('')}
     </div>` : `<div class="empty" style="padding:0 0 22px;">Semua utang sudah impas / lunas.</div>`;
 
-  const allItems = allDebts.slice().sort((a,b)=>b.created_at-a.created_at);
-  const detailHtml = allItems.map(it => `
-    <div class="item" style="${it.settled ? 'opacity:.5' : ''}">
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.debtor} &rarr; ${it.creditor}, ${it.desc} ${fmt(it.amt)}</span>
-      <span style="display:flex;align-items:center;gap:10px;flex:0 0 auto;">
-        <span class="del" data-toggle-id="${it.id}" data-toggle-settled="${it.settled}">${it.settled ? 'Batal' : 'Lunas'}</span>
-        <span class="del" data-del-id="${it.id}">Hapus</span>
-      </span>
-    </div>`).join('');
+  // Kelompokkan per pasangan (debtor->creditor) supaya "imad -> lisa" cuma disebut
+  // sekali sebagai header, item-item di bawahnya cuma nampilin keterangan & nominal.
+  const byPair = {};
+  allDebts.forEach(d => {
+    const key = d.debtor + '||' + d.creditor;
+    if(!byPair[key]) byPair[key] = { debtor: d.debtor, creditor: d.creditor, items: [] };
+    byPair[key].items.push(d);
+  });
+  const pairs = Object.values(byPair).sort((a,b)=> (a.debtor+a.creditor).localeCompare(b.debtor+b.creditor));
 
-  panel.innerHTML = summaryHtml + `<div style="display:flex;flex-direction:column;gap:6px;">${detailHtml}</div>`;
+  const detailHtml = pairs.map(p => {
+    const items = p.items.slice().sort((a,b)=>b.created_at-a.created_at);
+    const itemsHtml = items.map(it => `
+      <div class="item" style="${it.settled ? 'opacity:.5' : ''}">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it.desc} ${fmt(it.amt)}</span>
+        <span style="display:flex;align-items:center;gap:10px;flex:0 0 auto;">
+          <span class="del" data-toggle-id="${it.id}" data-toggle-settled="${it.settled}">${it.settled ? 'Batal' : 'Lunas'}</span>
+          <span class="del" data-del-id="${it.id}">Hapus</span>
+        </span>
+      </div>`).join('');
+    return `
+      <div class="recap-label" style="margin:14px 0 6px;">${p.debtor} &rarr; ${p.creditor}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">${itemsHtml}</div>`;
+  }).join('');
+
+  panel.innerHTML = summaryHtml + detailHtml;
 
   panel.querySelectorAll('[data-toggle-id]').forEach(el => {
     el.addEventListener('click', () => toggleDebtSettled(el.dataset.toggleId, el.dataset.toggleSettled === 'true'));
