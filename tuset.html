@@ -791,6 +791,37 @@
     // Tanpa Firebase Storage: foto dikompres berat lalu disimpan langsung sebagai
     // base64 di field Firestore. Satu dokumen Firestore maksimal ~1MB, jadi kedua
     // foto (KTP + Penyerahan) digilir turun kualitasnya sampai muat.
+    function isHeic(file){
+      const type = (file.type || '').toLowerCase();
+      const name = (file.name || '').toLowerCase();
+      return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
+    }
+
+    let heic2anyLoading = null;
+    function loadHeic2Any(){
+      if(window.heic2any) return Promise.resolve(window.heic2any);
+      if(heic2anyLoading) return heic2anyLoading;
+      heic2anyLoading = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+        s.onload = () => resolve(window.heic2any);
+        s.onerror = () => reject(new Error('Gagal memuat konverter HEIC'));
+        document.head.appendChild(s);
+      });
+      return heic2anyLoading;
+    }
+
+    async function toBrowserReadableFile(file){
+      // Chrome/Firefox (Android & desktop) tidak bisa decode HEIC/HEIF (foto default
+      // kamera iPhone) langsung lewat <img>/canvas — cuma Safari/iOS yang bisa.
+      // Kalau ketemu file HEIC, convert dulu ke JPEG di browser sebelum dikompres.
+      if(!isHeic(file)) return file;
+      const heic2any = await loadHeic2Any();
+      const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
+      const blob = Array.isArray(converted) ? converted[0] : converted;
+      return new File([blob], (file.name || 'foto').replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
+    }
+
     function loadImg(file){
       return new Promise((resolve, reject) => {
         const img = new Image();
@@ -805,6 +836,7 @@
     // ke kuota 1MB per dokumen Firestore, bukan ukuran biner hasil decode).
     // 220KB x 3 foto + field lain masih aman di bawah limit 1.048.576 byte.
     async function compressToDataUrl(file, maxStringLen = 220 * 1024){
+      file = await toBrowserReadableFile(file);
       const img = await loadImg(file);
       const dims = [1280, 1000, 800, 600, 450];
       const qualities = [0.6, 0.45, 0.35, 0.25, 0.15];
