@@ -207,8 +207,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getFirestore, collection, doc, setDoc, serverTimestamp,
-    query, orderBy, limit, onSnapshot
+    getFirestore, collection, doc, setDoc, serverTimestamp, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   // ==== ISI CONFIG FIREBASE ANDA DI SINI ====
@@ -912,8 +911,9 @@
       }
     });
 
-    const q = query(reportsRef, orderBy('created_at', 'desc'), limit(200));
-    onSnapshot(q, (snap) => {
+    // Tanpa orderBy/limit: urutan tampilan tetap ikut MASTER_LIST (bukan urutan
+    // dokumen ini), jadi query polos ini cukup dan tidak bergantung ke index Firestore.
+    onSnapshot(reportsRef, (snap) => {
       lastDocs = snap.docs.map(doc => doc.data());
       renderEntries();
     }, (err) => {
