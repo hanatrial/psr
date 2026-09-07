@@ -2,17 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // reports (app tuset.html) — validasi field wajib tetap dipertahankan
+    // reports (app tuset.html) — foto boleh diupload satu-satu (merge:true),
+    // jadi foto_ktp/foto_penyerahan/foto_display cuma divalidasi KALAU ada.
     match /reports/{reportId} {
       allow read: if true;
       allow create, update: if
-        request.resource.data.keys().hasAll(['area', 'mds', 'kedai', 'foto_ktp', 'foto_penyerahan', 'foto_display', 'created_at']) &&
+        request.resource.data.keys().hasAll(['area', 'mds', 'kedai', 'created_at']) &&
         request.resource.data.area is string &&
         request.resource.data.mds is string &&
         request.resource.data.kedai is string &&
-        request.resource.data.foto_ktp is string &&
-        request.resource.data.foto_penyerahan is string &&
-        request.resource.data.foto_display is string;
+        (!('foto_ktp' in request.resource.data) || request.resource.data.foto_ktp is string) &&
+        (!('foto_penyerahan' in request.resource.data) || request.resource.data.foto_penyerahan is string) &&
+        (!('foto_display' in request.resource.data) || request.resource.data.foto_display is string);
       allow delete: if false;
     }
 
