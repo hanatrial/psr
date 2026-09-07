@@ -968,7 +968,7 @@
     const complete = MASTER_LIST.filter(r =>
       (!areaFilter || r.area === areaFilter) && (!mdsFilter || r.mds === mdsFilter)
     ).map(r => ({ r, d: reportMap.get(r.mds + '||' + r.kedai) }))
-     .filter(({ d }) => d && d.foto_ktp && d.foto_penyerahan && d.foto_display);
+     .filter(({ d }) => d && d.foto_penyerahan && d.foto_display); // KTP opsional
 
     if(!complete.length){
       const filterLabel = [areaFilter, mdsFilter].filter(Boolean).join(' · ');
@@ -1002,22 +1002,32 @@
       doc.setTextColor(20);
 
       try {
-        const [ktpImg, penyImg, displayImg] = await Promise.all([
-          loadImage(d.foto_ktp), loadImage(d.foto_penyerahan), loadImage(d.foto_display)
-        ]);
-        doc.setFontSize(9);
-        doc.text('Foto KTP', margin, contentTop);
-        drawImageFit(doc, ktpImg, margin, contentTop + 3, imgW, halfH - 3);
+        if(d.foto_ktp){
+          const [ktpImg, penyImg, displayImg] = await Promise.all([
+            loadImage(d.foto_ktp), loadImage(d.foto_penyerahan), loadImage(d.foto_display)
+          ]);
+          doc.setFontSize(9);
+          doc.text('Foto KTP', margin, contentTop);
+          drawImageFit(doc, ktpImg, margin, contentTop + 3, imgW, halfH - 3);
 
-        // Setengah bawah dibagi 2 kolom: Foto Penyerahan | Foto Display
-        const secondTop = contentTop + halfH + 8;
-        const colGap = 6;
-        const colW = (imgW - colGap) / 2;
-        doc.text('Foto Penyerahan', margin, secondTop);
-        drawImageFit(doc, penyImg, margin, secondTop + 3, colW, halfH - 3);
+          // Setengah bawah dibagi 2 kolom: Foto Penyerahan | Foto Display
+          const secondTop = contentTop + halfH + 8;
+          const colGap = 6;
+          const colW = (imgW - colGap) / 2;
+          doc.text('Foto Penyerahan', margin, secondTop);
+          drawImageFit(doc, penyImg, margin, secondTop + 3, colW, halfH - 3);
 
-        doc.text('Foto Display', margin + colW + colGap, secondTop);
-        drawImageFit(doc, displayImg, margin + colW + colGap, secondTop + 3, colW, halfH - 3);
+          doc.text('Foto Display', margin + colW + colGap, secondTop);
+          drawImageFit(doc, displayImg, margin + colW + colGap, secondTop + 3, colW, halfH - 3);
+        } else {
+          // Tanpa KTP: Foto Penyerahan & Display masing-masing ambil setengah
+          // halaman penuh (layout 2 foto, tanpa label/keterangan tambahan).
+          const [penyImg, displayImg] = await Promise.all([
+            loadImage(d.foto_penyerahan), loadImage(d.foto_display)
+          ]);
+          drawImageFit(doc, penyImg, margin, contentTop, imgW, halfH);
+          drawImageFit(doc, displayImg, margin, contentTop + halfH + 8, imgW, halfH);
+        }
       } catch (err) {
         doc.setFontSize(10);
         doc.text('Gagal memuat foto untuk kedai ini.', margin, contentTop + 10);
