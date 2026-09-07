@@ -951,6 +951,44 @@
   const pdfBtn = document.getElementById('pdfBtn');
   const pdfStatus = document.getElementById('pdfStatus');
 
+  // Kedai-kedai ini boleh export PDF tanpa Foto KTP (mis. pemilik/penjaga kedai
+  // tidak ada KTP-nya). Di luar daftar ini, KTP tetap wajib.
+  const KTP_EXEMPT = new Set([
+    "Mks - kedai kartini makmur","Mks - arb","Mks-kedai faizah","Wm arsy arsya",
+    "Mks-kedai pinky","Mks - the aling drink","Mks - gorengan suka-suka","Mks-Wm hilya",
+    "Mks-kedai hasni","Mks - kedai tiga putra","GOWA-KEDAI BUNDA","Mks - kedai resky",
+    "Mks - boba cincau","Mks - kedai syaka","Mks-kedai aa","Mks - jajanan receh",
+    "Mks - kedai bucin","Mks kedai wahyu","Mks - sarabba gorengan arrahman","Mks kedai reski",
+    "Mks - kedai tiga dara manis","Mks - Kantin SDN Kakatua","Mks - kantin azzahrah",
+    "Mks - kantin muli UMI","Mks - Kedai Zahra","Mks - kedai es 86","Kedai drink rumahan",
+    "Mks warung bakso mas daduk","Mks - kedai bhelenk","Mks - kantin ungu","Mks - kedai hasmawati",
+    "Kedai aneka nutrisari","Mks - bakso mas unang","MKS-Kedai Es Cell","Mks - kedai Cece",
+    "Kedai nada","Mks-Kantin Kuning SDN Cedrawasih","Mks- warung ibu eni","Mks kedai aqila",
+    "Mks-Warung Khairunnisa","Mks - kedai alfian","Kantin mama yusuf","Warung nasi teras",
+    "Mks kantin 06","Kebab aqila","Kedai aiu","Rombong dg Naba","Mks - kedai perempatan",
+    "Mks - kedai appi","Mks - kedai silva","Kantin tante say","Kedai bonle","Kedai tini",
+    "Mks - kedai amina","Mks - okm bibi fizah","MKS-KEDAI CAPPA","KEDAI HAMDALAH CARENGKI",
+    "SUKI SUKA","KEDAI GIBRAN TANRALILI","KEDAI JSR","Kedai borneo","Kedai khaira",
+    "Mks-Kantin SDI Bakung 1","Mks- Menu RR maros","KEDAY AYDAN","KEDAI PURBA LEANG LEANG",
+    "Mks-Lestari Drink 2","MKS-KANTIN VHIYA","KEDAI ABY","LAPO KOPI","KANTIN SALSA",
+    "Mks-Es teh jumbo bung","BLK- Kantin Tanta Ida SMA 1 Bulukumba","BLK- KEDAI KUNING",
+    "Snj_kedai aryul","kedai doyan jajan snj","Kantin 12 (SMPN 10 BULUKUMBA)",
+    "kantin sehat smp 5 sinjai","BLK ROMANTICA CAFE","kedai inha snj","KEDAI ASMARANI",
+    "BTG-KANTIN FITA","BLK - KEDAI ADDAR","BLK-KEDAI AYU","Es teh poci ke'nang",
+    "KANTIN IBU WATI","Kedai Gerobak kuning kampala","Kedai Teh Poci Syarif","Kedai Farel",
+    "Kantin Merah Amanah Pgkp","Kedai 77 Kopi Kita","CRUNCHY FOODS","RUMAH MAKAN JAWA TIMUR BU AYU",
+    "BTG- Kedai CC UCI","Kedai dapur ghina","Wrg mkn psm junior","Blk KEDAI GILANG",
+    "Snj_kedai pink lapnas","BTG- Kedai tasty trial","Dg so'na","BTG-RM MAS JOKO",
+    "SNJ - Kedai putri tunggal","kedai berkah snj","BTG- warung bakso goyang lidah",
+    "Mks-Kantin mama indah","WR BAKSO MBA ERNI","Snj_kedai dini","BLK kedai amirah",
+    "SNJ - Kedai ridha","TKLR-WARUNG MAS IDOLAKU","BTG-KEDAI SUCI sentral","GOWA-WARUNG SRI",
+    "Snj BAKSO FAZA","BTG- Kedai Tanpa Boss","GOWA-KANTIN ABDULLAH","Mks-kedai hafiz",
+    "GOWA-KEDAI NURUL YAKIN","Mks-kantin cemara","Kedai misbah","Mks-kedai amman'",
+    "Mks-kedai malika","GOWA-KEDAI SINAR","GOWA-KANTIN HAJI LINRA",
+    "Mks - kedai ibu murni (dpn sdn sumanna)","GOWA-KEDAI 3A","GOWA-KEDAI ANNISA",
+    "Dapoer mammy","Mks-kedai nadhif"
+  ]);
+
   pdfBtn.addEventListener('click', async () => {
     const inputPw = window.prompt('Masukkan password untuk download PDF:');
     if(inputPw === null) return; // dibatalkan
@@ -968,7 +1006,7 @@
     const complete = MASTER_LIST.filter(r =>
       (!areaFilter || r.area === areaFilter) && (!mdsFilter || r.mds === mdsFilter)
     ).map(r => ({ r, d: reportMap.get(r.mds + '||' + r.kedai) }))
-     .filter(({ d }) => d && d.foto_penyerahan && d.foto_display); // KTP opsional
+     .filter(({ r, d }) => d && d.foto_penyerahan && d.foto_display && (d.foto_ktp || KTP_EXEMPT.has(r.kedai)));
 
     if(!complete.length){
       const filterLabel = [areaFilter, mdsFilter].filter(Boolean).join(' · ');
