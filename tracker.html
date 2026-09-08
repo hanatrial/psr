@@ -385,6 +385,11 @@ function getDateRange(startStr, endStr){
 }
 
 // Menghitung budget berjalan tiap hari: sisa hari sebelumnya (bisa minus) terbawa ke hari berikutnya.
+// Tanggal-tanggal di sini bikin budget "restart" dari Rp150.000 di tanggal itu,
+// mengabaikan sisa/minus dari hari-hari sebelumnya. Tambah tanggal baru (format
+// "YYYY-MM-DD") kapan pun mau reset lagi.
+const BUDGET_RESETS = ["2026-09-08"];
+
 function computeDailyBudgets(){
   const t = todayStr();
   const allDates = Object.keys(allEntries);
@@ -396,6 +401,7 @@ function computeDailyBudgets(){
   const map = {};
   let carry = 0;
   range.forEach(dateStr=>{
+    if(BUDGET_RESETS.includes(dateStr)) carry = 0;
     const entries = allEntries[dateStr] || [];
     const budgetEntries = entries.filter(it => it.budgetAffecting !== false);
     const spent = budgetEntries.reduce((s,it)=>s+it.amt,0);
