@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Input Report Tim — Serbu Pasar Sulawesi</title>
+<title>Status Foto — Serbu Pasar Sulawesi</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -13,59 +13,38 @@
     --accent:#ffb454; --ok:#4fd1c5; --err:#ff5d5d;
   }
   html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
-  .wrap{max-width:640px;margin:0 auto;padding:36px 20px 80px}
+  .wrap{max-width:720px;margin:0 auto;padding:36px 20px 80px}
 
   .eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:6px}
   h1{font-size:20px;font-weight:700;font-family:Georgia,serif;margin-bottom:6px}
-  .sub{font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:28px}
+  .sub{font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:22px}
 
-  .setup-warning{display:none;background:rgba(255,93,93,.1);border:1px solid rgba(255,93,93,.4);
-    border-radius:10px;padding:14px 16px;margin-bottom:24px;font-size:12px;line-height:1.6;color:#ffb4b4}
-  .setup-warning.show{display:block}
-  .setup-warning code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace}
-
-  form{display:flex;flex-direction:column;gap:16px}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);
-    font-weight:600;margin-bottom:6px}
-  input,textarea,select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
-    background:var(--card);color:var(--text);font-size:13.5px;outline:none;font-family:'DM Sans',sans-serif}
-  input:focus,textarea:focus,select:focus{border-color:var(--accent)}
-  ::placeholder{color:var(--text3)}
-  input[type="file"]{padding:9px 10px;font-size:12px;color:var(--text2)}
-
-  button.submit{margin-top:8px;padding:13px;border-radius:9px;border:none;background:var(--accent);
-    color:#1a1006;font-size:13.5px;font-weight:700;cursor:pointer;transition:filter .15s}
-  button.submit:hover{filter:brightness(1.08)}
-  button.submit:disabled{opacity:.5;cursor:not-allowed}
-
-  .status{margin-top:14px;font-size:12.5px;padding:10px 12px;border-radius:8px;display:none}
-  .status.show{display:block}
-  .status.ok{background:rgba(79,209,197,.12);color:var(--ok);border:1px solid rgba(79,209,197,.35)}
-  .status.err{background:rgba(255,93,93,.12);color:var(--err);border:1px solid rgba(255,93,93,.35)}
-
-  .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:44px 0 14px}
+  .list-head{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 14px}
   .list-head h2{font-size:14px;font-family:Georgia,serif}
   .list-head .count{font-size:11.5px;color:var(--text3);font-family:'DM Mono',monospace}
   .list-filter{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
   .list-filter > div{flex:1;min-width:150px}
-  .list-filter label{margin:0 0 5px;white-space:nowrap;display:block}
-  .list-filter select{width:100%;padding:7px 10px;font-size:12.5px}
+  .list-filter label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);
+    font-weight:600;margin:0 0 5px;white-space:nowrap}
+  .list-filter select{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);
+    background:var(--card);color:var(--text);font-size:12.5px;outline:none}
 
   .totals-bar{display:flex;gap:1px;background:var(--border);border:1px solid var(--border);
-    border-radius:10px;overflow:hidden;margin-bottom:14px}
-  .totals-bar .t{flex:1;background:var(--card);padding:11px 14px}
+    border-radius:10px;overflow:hidden;margin-bottom:14px;flex-wrap:wrap}
+  .totals-bar .t{flex:1;min-width:90px;background:var(--card);padding:11px 14px}
   .totals-bar .t .n{font-size:17px;font-weight:700;font-family:'DM Mono',monospace}
   .totals-bar .t .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-top:2px}
   .totals-bar .t.ok .n{color:var(--ok)}
   .totals-bar .t.pending .n{color:var(--accent)}
 
-  .pdf-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .pdf-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
   .pdf-btn{padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);
-    color:var(--text);font-size:12.5px;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s}
+    color:var(--text);font-size:12.5px;font-weight:700;cursor:pointer;transition:border-color .15s}
   .pdf-btn:hover{border-color:var(--accent)}
   .pdf-btn:disabled{opacity:.5;cursor:not-allowed}
   .pdf-status{font-size:11.5px;color:var(--text3)}
+
+  .only-missing{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);margin-bottom:14px}
 
   .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
   table.report-table{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -79,97 +58,71 @@
     color:var(--accent);background:rgba(255,180,84,.12);border:1px solid rgba(255,180,84,.3);
     border-radius:20px;padding:2px 8px}
   .chk{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
-    border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;font-family:inherit;
-    padding:0;cursor:default}
-  .chk.yes{background:rgba(79,209,197,.15);color:var(--ok);border:1px solid rgba(79,209,197,.4);cursor:pointer}
-  .chk.yes:hover{filter:brightness(1.15)}
+    border-radius:6px;font-size:13px;font-weight:700}
+  .chk.yes{background:rgba(79,209,197,.15);color:var(--ok);border:1px solid rgba(79,209,197,.4)}
   .chk.no{background:rgba(255,93,93,.1);color:var(--err);border:1px solid rgba(255,93,93,.3)}
   .empty-list{font-size:12px;color:var(--text3);text-align:center;padding:24px;white-space:normal}
-
-  .photo-overlay{display:none;position:fixed;inset:0;background:rgba(6,9,15,.75);backdrop-filter:blur(3px);
-    z-index:110;align-items:center;justify-content:center;padding:24px}
-  .photo-overlay.show{display:flex}
-  .photo-modal{position:relative;max-width:min(92vw,600px);max-height:88vh;background:var(--card);
-    border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);
-    display:flex;flex-direction:column;gap:12px}
-  .photo-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text2);
-    font-size:24px;line-height:1;cursor:pointer;padding:4px}
-  .photo-close:hover{color:var(--text)}
-  .photo-modal-title{font-size:13px;font-weight:700;padding-right:20px}
-  .photo-modal-img{max-width:100%;max-height:75vh;object-fit:contain;border-radius:8px;display:block;margin:0 auto}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="eyebrow">Input Tim</div>
+  <div class="eyebrow">Status Tim</div>
   <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
-    <h1>Tukar Sachet</h1>
-    <a href="status.html" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:700">Lihat Status Foto →</a>
+    <h1>Status Foto</h1>
+    <a href="tuset.html" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:700">← Ke halaman Input</a>
   </div>
+  <div class="sub">Halaman ini cuma memuat data ringan (boolean sudah/belum), tanpa foto — jadi cepat dibuka. PDF diunduh dengan mengambil foto satu-satu, hanya untuk kedai yang lengkap sesuai filter.</div>
 
-  <div class="setup-warning" id="setupWarning">
-    ⚠️ Firebase belum dikonfigurasi. Buka <code>tuset.html</code>, cari <code>firebaseConfig</code> di bagian bawah file, lalu isi dengan config project Firebase Anda.
+  <div class="list-head">
+    <h2>Rekap Kedai</h2>
+    <span class="count" id="entryCount">—</span>
   </div>
-
-  <form id="reportForm">
+  <div class="list-filter">
     <div>
-      <label for="fArea">Area</label>
-      <select id="fArea" required>
-        <option value="" disabled selected>Pilih area</option>
+      <label for="filterArea">Filter Area</label>
+      <select id="filterArea">
+        <option value="">Semua Area</option>
         <option value="Makassar">Makassar</option>
         <option value="Gorontalo">Gorontalo</option>
       </select>
     </div>
-
-    <div class="row2">
-      <div>
-        <label for="fMds">Nama MDS</label>
-        <select id="fMds" required>
-          <option value="" disabled selected>Pilih MDS</option>
-        </select>
-      </div>
-      <div>
-        <label for="fKedai">Nama Kedai</label>
-        <select id="fKedai" required>
-          <option value="" disabled selected>Pilih kedai</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row2">
-      <div>
-        <label for="fKtp">Foto KTP</label>
-        <input type="file" id="fKtp" accept="image/*">
-      </div>
-      <div>
-        <label for="fPenyerahan">Foto Penyerahan</label>
-        <input type="file" id="fPenyerahan" accept="image/*">
-      </div>
-    </div>
-
     <div>
-      <label for="fDisplay">Foto Display</label>
-      <input type="file" id="fDisplay" accept="image/*">
+      <label for="filterMds">Filter MDS</label>
+      <select id="filterMds">
+        <option value="">Semua MDS</option>
+      </select>
     </div>
-    <div style="font-size:.75rem;color:var(--text3);margin-top:-6px;">Boleh upload satu-satu — nggak harus ketiganya sekaligus. Upload ulang otomatis menimpa foto sebelumnya untuk field yang sama.</div>
-
-    <button type="submit" class="submit" id="submitBtn">Kirim Report</button>
-    <div class="status" id="formStatus"></div>
-  </form>
-
-  <div style="margin-top:44px;font-size:12px;color:var(--text3);line-height:1.6">
-    Mau cek kedai mana yang fotonya belum lengkap? Buka <a href="status.html" style="color:var(--accent)">halaman Status Foto</a> — lebih ringan, nggak perlu muat semua foto.
+  </div>
+  <div class="totals-bar" id="totalsBar"></div>
+  <label class="only-missing"><input type="checkbox" id="onlyMissing"> Tampilkan yang belum lengkap saja</label>
+  <div class="pdf-bar">
+    <button type="button" class="pdf-btn" id="pdfBtn">📄 Download PDF (kedai lengkap)</button>
+    <span class="pdf-status" id="pdfStatus"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Nama MDS</th>
+          <th>Nama Kedai</th>
+          <th>Area</th>
+          <th>KTP</th>
+          <th>Foto</th>
+          <th>Display</th>
+        </tr>
+      </thead>
+      <tbody id="entryList"><tr><td colspan="6" class="empty-list">Memuat…</td></tr></tbody>
+    </table>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getFirestore, collection, doc, setDoc, serverTimestamp, onSnapshot
+    getFirestore, collection, doc, getDoc, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ==== ISI CONFIG FIREBASE ANDA DI SINI ====
-  // Ambil dari Firebase Console > Project Settings > General > Your apps > SDK setup and configuration
   const firebaseConfig = {
     apiKey: "AIzaSyCA8Q8athqYIsY3By5wPxcU97GjDBR6DAs",
     authDomain: "mds-sulawesi.firebaseapp.com",
@@ -178,10 +131,9 @@
     messagingSenderId: "511949021685",
     appId: "1:511949021685:web:bc32007af0555449e7c0bc"
   };
-  // ============================================
 
-  // ==== DATA MASTER MDS + KEDAI (dari database tim) ====
-  // Setiap baris = satu kedai yang ditugaskan ke satu MDS di satu area.
+  // MASTER_LIST + KTP_EXEMPT sengaja disalin dari tuset.html (situs statis, tanpa
+  // backend bersama) — kalau daftar kedai berubah di tuset.html, salin ulang ke sini.
   const MASTER_LIST = [
     { area: "Makassar", mds: "Andi Iswan Tenri", kedai: "MKS- Es teh poci SMP Telkom" },
     { area: "Makassar", mds: "Andi Iswan Tenri", kedai: "Mks- Kantin Mace" },
@@ -601,204 +553,223 @@
     { area: "Gorontalo", mds: "Satrio Yusuf", kedai: "Gto RM Idola" },
     { area: "Gorontalo", mds: "Satrio Yusuf", kedai: "GTO-KANTIN SEDERHANA" },
   ];
-  // =========================================================
+  const KTP_EXEMPT = new Set(["Mks - kedai kartini makmur","Mks - arb","Mks-kedai faizah","Wm arsy arsya","Mks-kedai pinky","Mks - the aling drink","Mks - gorengan suka-suka","Mks-Wm hilya","Mks-kedai hasni","Mks - kedai tiga putra","GOWA-KEDAI BUNDA","Mks - kedai resky","Mks - boba cincau","Mks - kedai syaka","Mks-kedai aa","Mks - jajanan receh","Mks - kedai bucin","Mks kedai wahyu","Mks - sarabba gorengan arrahman","Mks kedai reski","Mks - kedai tiga dara manis","Mks - Kantin SDN Kakatua","Mks - kantin azzahrah","Mks - kantin muli UMI","Mks - Kedai Zahra","Mks - kedai es 86","Kedai drink rumahan","Mks warung bakso mas daduk","Mks - kedai bhelenk","Mks - kantin ungu","Mks - kedai hasmawati","Kedai aneka nutrisari","Mks - bakso mas unang","MKS-Kedai Es Cell","Mks - kedai Cece","Kedai nada","Mks-Kantin Kuning SDN Cedrawasih","Mks- warung ibu eni","Mks kedai aqila","Mks-Warung Khairunnisa","Mks - kedai alfian","Kantin mama yusuf","Warung nasi teras","Mks kantin 06","Kebab aqila","Kedai aiu","Rombong dg Naba","Mks - kedai perempatan","Mks - kedai appi","Mks - kedai silva","Kantin tante say","Kedai bonle","Kedai tini","Mks - kedai amina","Mks - okm bibi fizah","MKS-KEDAI CAPPA","KEDAI HAMDALAH CARENGKI","SUKI SUKA","KEDAI GIBRAN TANRALILI","KEDAI JSR","Kedai borneo","Kedai khaira","Mks-Kantin SDI Bakung 1","Mks- Menu RR maros","KEDAY AYDAN","KEDAI PURBA LEANG LEANG","Mks-Lestari Drink 2","MKS-KANTIN VHIYA","KEDAI ABY","LAPO KOPI","KANTIN SALSA","Mks-Es teh jumbo bung","BLK- Kantin Tanta Ida SMA 1 Bulukumba","BLK- KEDAI KUNING","Snj_kedai aryul","kedai doyan jajan snj","Kantin 12 (SMPN 10 BULUKUMBA)","kantin sehat smp 5 sinjai","BLK ROMANTICA CAFE","kedai inha snj","KEDAI ASMARANI","BTG-KANTIN FITA","BLK - KEDAI ADDAR","BLK-KEDAI AYU","Es teh poci ke'nang","KANTIN IBU WATI","Kedai Gerobak kuning kampala","Kedai Teh Poci Syarif","Kedai Farel","Kantin Merah Amanah Pgkp","Kedai 77 Kopi Kita","CRUNCHY FOODS","RUMAH MAKAN JAWA TIMUR BU AYU","BTG- Kedai CC UCI","Kedai dapur ghina","Wrg mkn psm junior","Blk KEDAI GILANG","Snj_kedai pink lapnas","BTG- Kedai tasty trial","Dg so'na","BTG-RM MAS JOKO","SNJ - Kedai putri tunggal","kedai berkah snj","BTG- warung bakso goyang lidah","Mks-Kantin mama indah","WR BAKSO MBA ERNI","Snj_kedai dini","BLK kedai amirah","SNJ - Kedai ridha","TKLR-WARUNG MAS IDOLAKU","BTG-KEDAI SUCI sentral","GOWA-WARUNG SRI","Snj BAKSO FAZA","BTG- Kedai Tanpa Boss","GOWA-KANTIN ABDULLAH","Mks-kedai hafiz","GOWA-KEDAI NURUL YAKIN","Mks-kantin cemara","Kedai misbah","Mks-kedai amman'","Mks-kedai malika","GOWA-KEDAI SINAR","GOWA-KANTIN HAJI LINRA","Mks - kedai ibu murni (dpn sdn sumanna)","GOWA-KEDAI 3A","GOWA-KEDAI ANNISA","Dapoer mammy","Mks-kedai nadhif"]);
 
   const isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("GANTI");
-  const form = document.getElementById('reportForm');
-  const submitBtn = document.getElementById('submitBtn');
-  const statusEl = document.getElementById('formStatus');
+  const entryList = document.getElementById('entryList');
+  const entryCount = document.getElementById('entryCount');
+  const filterArea = document.getElementById('filterArea');
+  const filterMds = document.getElementById('filterMds');
+  const onlyMissing = document.getElementById('onlyMissing');
+  const totalsBar = document.getElementById('totalsBar');
+  const pdfBtn = document.getElementById('pdfBtn');
+  const pdfStatus = document.getElementById('pdfStatus');
 
-  const fArea = document.getElementById('fArea');
-  const fMds = document.getElementById('fMds');
-  const fKedai = document.getElementById('fKedai');
-
-  function fillSelect(selectEl, items, placeholder){
-    selectEl.innerHTML = '';
-    const ph = document.createElement('option');
-    ph.value = ''; ph.disabled = true; ph.selected = true;
-    ph.textContent = items.length ? placeholder : 'Tidak ada data';
-    selectEl.appendChild(ph);
-    items.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      selectEl.appendChild(opt);
-    });
-  }
   function uniqueSorted(arr){ return [...new Set(arr)].sort((a,b)=>a.localeCompare(b)); }
-
-  // ---- Form: Area -> MDS -> Kedai, semua diturunkan dari MASTER_LIST ----
-  function updateMdsForArea(){
-    const area = fArea.value;
-    const mdsOptions = uniqueSorted(MASTER_LIST.filter(r => r.area === area).map(r => r.mds));
-    fillSelect(fMds, mdsOptions, 'Pilih MDS');
-    fillSelect(fKedai, [], 'Pilih MDS dulu');
-  }
-  function updateKedaiForMds(){
-    const area = fArea.value, mds = fMds.value;
-    const kedaiOptions = uniqueSorted(MASTER_LIST.filter(r => r.area === area && r.mds === mds).map(r => r.kedai));
-    fillSelect(fKedai, kedaiOptions, 'Pilih kedai');
-  }
-  fArea.addEventListener('change', updateMdsForArea);
-  fMds.addEventListener('change', updateKedaiForMds);
-  fillSelect(fMds, [], 'Pilih Area dulu');
-  fillSelect(fKedai, [], 'Pilih MDS dulu');
-
-  if(!isConfigured){
-    document.getElementById('setupWarning').classList.add('show');
-    submitBtn.disabled = true;
-  } else {
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const reportsRef = collection(db, "reports");
-    const statusRef = collection(db, "report_status");
-
-    // Tanpa Firebase Storage: foto dikompres berat lalu disimpan langsung sebagai
-    // base64 di field Firestore. Satu dokumen Firestore maksimal ~1MB, jadi kedua
-    // foto (KTP + Penyerahan) digilir turun kualitasnya sampai muat.
-    function isHeic(file){
-      const type = (file.type || '').toLowerCase();
-      const name = (file.name || '').toLowerCase();
-      return type.includes('heic') || type.includes('heif') || name.endsWith('.heic') || name.endsWith('.heif');
-    }
-
-    let heic2anyLoading = null;
-    function loadHeic2Any(){
-      if(window.heic2any) return Promise.resolve(window.heic2any);
-      if(heic2anyLoading) return heic2anyLoading;
-      heic2anyLoading = new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-        s.onload = () => resolve(window.heic2any);
-        s.onerror = () => reject(new Error('Gagal memuat konverter HEIC'));
-        document.head.appendChild(s);
-      });
-      return heic2anyLoading;
-    }
-
-    async function toBrowserReadableFile(file){
-      // Chrome/Firefox (Android & desktop) tidak bisa decode HEIC/HEIF (foto default
-      // kamera iPhone) langsung lewat <img>/canvas — cuma Safari/iOS yang bisa.
-      // Kalau ketemu file HEIC, convert dulu ke JPEG di browser sebelum dikompres.
-      if(!isHeic(file)) return file;
-      const heic2any = await loadHeic2Any();
-      const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 });
-      const blob = Array.isArray(converted) ? converted[0] : converted;
-      return new File([blob], (file.name || 'foto').replace(/\.(heic|heif)$/i, '.jpg'), { type: 'image/jpeg' });
-    }
-
-    function loadImg(file){
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        const url = URL.createObjectURL(file);
-        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Gagal membaca gambar')); };
-        img.src = url;
-      });
-    }
-
-    // maxStringLen = panjang string base64 maksimum (ini yang beneran dihitung
-    // ke kuota 1MB per dokumen Firestore, bukan ukuran biner hasil decode).
-    // 220KB x 3 foto + field lain masih aman di bawah limit 1.048.576 byte.
-    async function compressToDataUrl(file, maxStringLen = 220 * 1024){
-      file = await toBrowserReadableFile(file);
-      const img = await loadImg(file);
-      const dims = [1280, 1000, 800, 600, 450];
-      const qualities = [0.6, 0.45, 0.35, 0.25, 0.15];
-      let best = null;
-      for(const maxDim of dims){
-        let { width, height } = img;
-        if(width > maxDim || height > maxDim){
-          const ratio = Math.min(maxDim / width, maxDim / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        for(const q of qualities){
-          const dataUrl = canvas.toDataURL('image/jpeg', q);
-          best = dataUrl;
-          if(dataUrl.length <= maxStringLen) return dataUrl;
-        }
-      }
-      return best; // paling kecil yang bisa dicapai, meski masih di atas target
-    }
-
-    function reportDocId(area, mds, kedai){
-      return `${slugify(area)}__${slugify(mds)}__${slugify(kedai)}`;
-    }
-
-    async function uploadPhoto(file){
-      if(!file) return null;
-      return await compressToDataUrl(file);
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      submitBtn.disabled = true;
-      statusEl.className = 'status';
-      statusEl.textContent = 'Mengirim…';
-      statusEl.classList.add('show');
-      try {
-        const ktpFile = document.getElementById('fKtp').files[0];
-        const penyerahanFile = document.getElementById('fPenyerahan').files[0];
-        const displayFile = document.getElementById('fDisplay').files[0];
-
-        if(!ktpFile && !penyerahanFile && !displayFile){
-          throw new Error('Pilih minimal satu foto dulu (KTP, Penyerahan, atau Display).');
-        }
-
-        const area = fArea.value, mds = fMds.value, kedai = fKedai.value;
-        const [ktpDataUrl, penyerahanDataUrl, displayDataUrl] = await Promise.all([
-          uploadPhoto(ktpFile),
-          uploadPhoto(penyerahanFile),
-          uploadPhoto(displayFile)
-        ]);
-
-        const uploadedLen = [ktpDataUrl, penyerahanDataUrl, displayDataUrl].filter(Boolean).reduce((s,u)=>s+u.length,0);
-        if(uploadedLen > 950 * 1024){
-          throw new Error('Ukuran foto masih terlalu besar setelah dikompres. Coba foto ulang dengan pencahayaan lebih rata / tidak terlalu detail, lalu kirim lagi.');
-        }
-
-        // ID dokumen tetap per (area, mds, kedai) -> upload ulang MENIMPA laporan
-        // sebelumnya untuk kedai yang sama. Field yang nggak diupload di sesi ini
-        // TIDAK disentuh (merge:true), jadi bisa upload KTP/Penyerahan/Display satu-satu.
-        const docId = reportDocId(area, mds, kedai);
-        const data = { area, mds, kedai, created_at: serverTimestamp() };
-        if(ktpDataUrl) data.foto_ktp = ktpDataUrl;
-        if(penyerahanDataUrl) data.foto_penyerahan = penyerahanDataUrl;
-        if(displayDataUrl) data.foto_display = displayDataUrl;
-        await setDoc(doc(reportsRef, docId), data, { merge: true });
-
-        // Salinan ringan (cuma boolean, tanpa base64) buat halaman status.html
-        // supaya halaman itu nggak perlu muat foto sama sekali.
-        const statusData = { area, mds, kedai, updated_at: serverTimestamp() };
-        if(ktpDataUrl) statusData.ktp = true;
-        if(penyerahanDataUrl) statusData.peny = true;
-        if(displayDataUrl) statusData.disp = true;
-        await setDoc(doc(statusRef, docId), statusData, { merge: true });
-
-        form.reset();
-        statusEl.textContent = '✓ Report berhasil dikirim.';
-        statusEl.classList.remove('err'); statusEl.classList.add('ok');
-      } catch (err) {
-        statusEl.textContent = 'Gagal mengirim: ' + err.message;
-        statusEl.classList.remove('ok'); statusEl.classList.add('err');
-      } finally {
-        submitBtn.disabled = false;
-        setTimeout(() => statusEl.classList.remove('show'), 4000);
-      }
-    });
-  }
-
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
-
   function slugify(s){
-    return String(s).toLowerCase().trim()
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
+    return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'x';
+  }
+  function reportDocId(area, mds, kedai){
+    return `${slugify(area)}__${slugify(mds)}__${slugify(kedai)}`;
+  }
+
+  function updateMdsFilterOptions(){
+    const area = filterArea.value;
+    const mdsOptions = uniqueSorted(MASTER_LIST.filter(r => !area || r.area === area).map(r => r.mds));
+    const current = filterMds.value;
+    filterMds.innerHTML = '<option value="">Semua MDS</option>' +
+      mdsOptions.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+    if(mdsOptions.includes(current)) filterMds.value = current;
+  }
+
+  let lastDocs = [];
+
+  function renderEntries(){
+    const areaFilter = filterArea.value;
+    const mdsFilter = filterMds.value;
+    const missingOnly = onlyMissing.checked;
+
+    const statusMap = new Map();
+    lastDocs.forEach(d => statusMap.set(d.mds + '||' + d.kedai, d));
+
+    let rows = MASTER_LIST.filter(r =>
+      (!areaFilter || r.area === areaFilter) && (!mdsFilter || r.mds === mdsFilter)
+    );
+
+    const withKtp = rows.filter(r => statusMap.get(r.mds + '||' + r.kedai)?.ktp).length;
+    const withFoto = rows.filter(r => statusMap.get(r.mds + '||' + r.kedai)?.peny).length;
+    const withDisplay = rows.filter(r => statusMap.get(r.mds + '||' + r.kedai)?.disp).length;
+    const isLengkap = (r) => {
+      const d = statusMap.get(r.mds + '||' + r.kedai);
+      return !!(d?.peny && d?.disp && (d?.ktp || KTP_EXEMPT.has(r.kedai)));
+    };
+    const lengkapCount = rows.filter(isLengkap).length;
+
+    entryCount.textContent = rows.length + ' kedai';
+    totalsBar.innerHTML = `
+      <div class="t"><div class="n">${rows.length}</div><div class="l">Total Kedai</div></div>
+      <div class="t"><div class="n">${withKtp}</div><div class="l">KTP Masuk</div></div>
+      <div class="t"><div class="n">${withFoto}</div><div class="l">Foto Masuk</div></div>
+      <div class="t"><div class="n">${withDisplay}</div><div class="l">Display Masuk</div></div>
+      <div class="t ok"><div class="n">${lengkapCount} / ${rows.length}</div><div class="l">Lengkap</div></div>
+      <div class="t pending"><div class="n">${rows.length - lengkapCount}</div><div class="l">Belum Lengkap</div></div>`;
+
+    if(missingOnly) rows = rows.filter(r => !isLengkap(r));
+
+    if(!rows.length){
+      entryList.innerHTML = '<tr><td colspan="6" class="empty-list">Tidak ada kedai untuk filter ini.</td></tr>';
+      return;
+    }
+    entryList.innerHTML = rows.map(r => {
+      const d = statusMap.get(r.mds + '||' + r.kedai);
+      const ktpOk = d?.ktp || KTP_EXEMPT.has(r.kedai);
+      return `
+      <tr>
+        <td>${escapeHtml(r.mds)}</td>
+        <td>${escapeHtml(r.kedai)}</td>
+        <td><span class="entry-area">${escapeHtml(r.area)}</span></td>
+        <td>${ktpOk ? '<span class="chk yes">✓</span>' : '<span class="chk no">✕</span>'}</td>
+        <td>${d?.peny ? '<span class="chk yes">✓</span>' : '<span class="chk no">✕</span>'}</td>
+        <td>${d?.disp ? '<span class="chk yes">✓</span>' : '<span class="chk no">✕</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+  filterArea.addEventListener('change', () => { updateMdsFilterOptions(); renderEntries(); });
+  filterMds.addEventListener('change', renderEntries);
+  onlyMissing.addEventListener('change', renderEntries);
+  updateMdsFilterOptions();
+
+  if(!isConfigured){
+    entryList.innerHTML = '<tr><td colspan="6" class="empty-list">Firebase belum dikonfigurasi.</td></tr>';
+    pdfBtn.disabled = true;
+  } else {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const statusRef = collection(db, "report_status");
+    const reportsRef = collection(db, "reports");
+
+    // Cuma dengerin collection ringan (boolean doang, tanpa base64 foto) —
+    // makanya halaman ini tetap cepat walau kedai-nya ratusan.
+    onSnapshot(statusRef, (snap) => {
+      lastDocs = snap.docs.map(d => d.data());
+      renderEntries();
+    }, (err) => {
+      entryList.innerHTML = '<tr><td colspan="6" class="empty-list">Gagal memuat data: ' + escapeHtml(err.message) + '</td></tr>';
+    });
+
+    // ---- Export PDF: foto BARU diambil satu-satu dari koleksi "reports" (yang berat),
+    // dan cuma untuk kedai yang lengkap sesuai filter saat ini — bukan sekaligus semua.
+    function loadImage(url){
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+    function drawImageFit(pdfDoc, img, x, y, boxW, boxH){
+      const ratio = Math.min(boxW / img.width, boxH / img.height);
+      const w = img.width * ratio, h = img.height * ratio;
+      const dx = x + (boxW - w) / 2, dy = y + (boxH - h) / 2;
+      pdfDoc.addImage(img, 'JPEG', dx, dy, w, h);
+    }
+
+    pdfBtn.addEventListener('click', async () => {
+      const inputPw = window.prompt('Masukkan password untuk download PDF:');
+      if(inputPw === null) return;
+      if(inputPw !== 'pdf'){
+        pdfStatus.textContent = 'Password salah.';
+        setTimeout(() => pdfStatus.textContent = '', 3000);
+        return;
+      }
+
+      const areaFilter = filterArea.value;
+      const mdsFilter = filterMds.value;
+      const statusMap = new Map();
+      lastDocs.forEach(d => statusMap.set(d.mds + '||' + d.kedai, d));
+
+      const complete = MASTER_LIST.filter(r =>
+        (!areaFilter || r.area === areaFilter) && (!mdsFilter || r.mds === mdsFilter)
+      ).filter(r => {
+        const d = statusMap.get(r.mds + '||' + r.kedai);
+        return d?.peny && d?.disp && (d?.ktp || KTP_EXEMPT.has(r.kedai));
+      });
+
+      if(!complete.length){
+        const filterLabel = [areaFilter, mdsFilter].filter(Boolean).join(' · ');
+        pdfStatus.textContent = `Tidak ada kedai lengkap${filterLabel ? ' untuk ' + filterLabel : ' untuk filter saat ini'}.`;
+        setTimeout(() => pdfStatus.textContent = '', 4000);
+        return;
+      }
+
+      pdfBtn.disabled = true;
+      const { jsPDF } = window.jspdf;
+      const pdfDoc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageW = pdfDoc.internal.pageSize.getWidth();
+      const pageH = pdfDoc.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentTop = margin + 16;
+      const contentH = pageH - contentTop - margin;
+      const halfH = (contentH - 10) / 2;
+      const imgW = pageW - margin * 2;
+
+      for(let i = 0; i < complete.length; i++){
+        const r = complete[i];
+        pdfStatus.textContent = `Mengambil foto ${i + 1} / ${complete.length}…`;
+        const docId = reportDocId(r.area, r.mds, r.kedai);
+        const snap = await getDoc(doc(reportsRef, docId));
+        const d = snap.exists() ? snap.data() : null;
+        if(!d) continue;
+
+        if(i > 0) pdfDoc.addPage();
+        pdfDoc.setFontSize(14);
+        pdfDoc.setTextColor(20);
+        pdfDoc.text(r.kedai, margin, margin + 2);
+        pdfDoc.setFontSize(10);
+        pdfDoc.setTextColor(120);
+        pdfDoc.text(`Area: ${r.area}`, margin, margin + 8);
+        pdfDoc.setTextColor(20);
+
+        try {
+          if(d.foto_ktp){
+            const [ktpImg, penyImg, displayImg] = await Promise.all([
+              loadImage(d.foto_ktp), loadImage(d.foto_penyerahan), loadImage(d.foto_display)
+            ]);
+            pdfDoc.setFontSize(9);
+            pdfDoc.text('Foto KTP', margin, contentTop);
+            drawImageFit(pdfDoc, ktpImg, margin, contentTop + 3, imgW, halfH - 3);
+
+            const secondTop = contentTop + halfH + 8;
+            const colGap = 6;
+            const colW = (imgW - colGap) / 2;
+            pdfDoc.text('Foto Penyerahan', margin, secondTop);
+            drawImageFit(pdfDoc, penyImg, margin, secondTop + 3, colW, halfH - 3);
+            pdfDoc.text('Foto Display', margin + colW + colGap, secondTop);
+            drawImageFit(pdfDoc, displayImg, margin + colW + colGap, secondTop + 3, colW, halfH - 3);
+          } else {
+            const [penyImg, displayImg] = await Promise.all([
+              loadImage(d.foto_penyerahan), loadImage(d.foto_display)
+            ]);
+            drawImageFit(pdfDoc, penyImg, margin, contentTop, imgW, halfH);
+            drawImageFit(pdfDoc, displayImg, margin, contentTop + halfH + 8, imgW, halfH);
+          }
+        } catch (err) {
+          pdfDoc.setFontSize(10);
+          pdfDoc.text('Gagal memuat foto untuk kedai ini.', margin, contentTop + 10);
+        }
+      }
+
+      const fnameParts = ['report-tukar-sachet', areaFilter, mdsFilter].filter(Boolean).map(slugify);
+      pdfDoc.save(fnameParts.join('_') + '.pdf');
+      const filterLabel = [areaFilter, mdsFilter].filter(Boolean).join(' · ');
+      pdfStatus.textContent = `✓ ${complete.length} kedai berhasil diekspor${filterLabel ? ' (' + filterLabel + ')' : ''}.`;
+      pdfBtn.disabled = false;
+      setTimeout(() => pdfStatus.textContent = '', 5000);
+    });
   }
 </script>
 </body>

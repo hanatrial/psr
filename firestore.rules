@@ -17,6 +17,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // report_status (halaman status.html) — salinan RINGAN dari reports, cuma
+    // boolean status foto (tanpa base64), supaya halaman status bisa dengerin
+    // seluruh collection tanpa memuat foto sama sekali.
+    match /report_status/{reportId} {
+      allow read: if true;
+      allow create, update: if
+        request.resource.data.keys().hasAll(['area', 'mds', 'kedai']) &&
+        request.resource.data.area is string &&
+        request.resource.data.mds is string &&
+        request.resource.data.kedai is string &&
+        (!('ktp' in request.resource.data) || request.resource.data.ktp is bool) &&
+        (!('peny' in request.resource.data) || request.resource.data.peny is bool) &&
+        (!('disp' in request.resource.data) || request.resource.data.disp is bool);
+      allow delete: if false;
+    }
+
     // Semua collection lain (tidak pakai Firebase Auth) — dibuka penuh
     // termasuk seluruh sub-collection di dalamnya.
     match /distributor_reg/{document=**} { allow read, write: if true; }
