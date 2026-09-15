@@ -251,6 +251,8 @@
       <span id="budgetLabel">dari Rp150.000</span>
     </div>
     <div id="nonBudgetNote" style="font-size:.8rem;color:var(--ink-soft);margin-top:8px;display:none;"></div>
+    <button id="resetBudgetBtn" type="button" style="margin-top:12px;width:100%;padding:11px 0;font-size:.8rem;
+      background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:10px;">Reset budget ke Rp150.000</button>
   </div>
 
   <div class="input-row" style="flex-direction:column;gap:8px;">
@@ -296,7 +298,7 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc
+  getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -311,6 +313,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const expensesRef = collection(db, "tracker_expenses");
 const debtsRef = collection(db, "tracker_debts"); // koleksi terpisah, sama sekali tidak dibaca oleh logika budget di atas
+const metaRef = doc(db, "tracker_meta", "budget_resets"); // tanggal reset dari tombol, terpisah dari data pengeluaran
 
 // ---- Gate password ----
 const GATE_PW = '194040';
@@ -387,8 +390,14 @@ function getDateRange(startStr, endStr){
 // Menghitung budget berjalan tiap hari: sisa hari sebelumnya (bisa minus) terbawa ke hari berikutnya.
 // Tanggal-tanggal di sini bikin budget "restart" dari Rp150.000 di tanggal itu,
 // mengabaikan sisa/minus dari hari-hari sebelumnya. Tambah tanggal baru (format
-// "YYYY-MM-DD") kapan pun mau reset lagi.
+// "YYYY-MM-DD") kapan pun mau reset lagi lewat kode, atau pakai tombol "Reset budget"
+// di halaman (nambah ke tracker_meta/budget_resets, tidak menyentuh data pengeluaran).
 const BUDGET_RESETS = ["2026-09-08", "2026-09-16"];
+let dynamicResets = [];
+
+function isResetDate(dateStr){
+  return BUDGET_RESETS.includes(dateStr) || dynamicResets.includes(dateStr);
+}
 
 function computeDailyBudgets(){
   const t = todayStr();
@@ -401,7 +410,7 @@ function computeDailyBudgets(){
   const map = {};
   let carry = 0;
   range.forEach(dateStr=>{
-    if(BUDGET_RESETS.includes(dateStr)) carry = 0;
+    if(isResetDate(dateStr)) carry = 0;
     const entries = allEntries[dateStr] || [];
     const budgetEntries = entries.filter(it => it.budgetAffecting !== false);
     const spent = budgetEntries.reduce((s,it)=>s+it.amt,0);
@@ -496,6 +505,24 @@ function subscribeData(onFirstLoad){
     if(first){ first = false; onFirstLoad(); }
   });
 }
+
+onSnapshot(metaRef, (snap) => {
+  dynamicResets = snap.exists() ? (snap.data().dates || []) : [];
+  renderSelectedDay();
+  renderRecap();
+}, (err) => console.error('gagal memuat data reset budget', err));
+
+document.getElementById('resetBudgetBtn').addEventListener('click', async () => {
+  const t = todayStr();
+  const ok = window.confirm(`Reset budget mulai hari ini (${t}) ke Rp150.000?\n\nRekap & riwayat pengeluaran yang sudah ada TIDAK akan dihapus — cuma sisa/minus dari hari sebelumnya nggak dibawa masuk lagi mulai hari ini.`);
+  if(!ok) return;
+  try{
+    await setDoc(metaRef, { dates: arrayUnion(t) }, { merge: true });
+  }catch(e){
+    console.error('gagal reset budget', e);
+    alert('Gagal reset budget: ' + e.message);
+  }
+});
 
 async function saveData(dateStr){
   try{
