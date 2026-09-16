@@ -528,6 +528,7 @@ document.getElementById('resetBudgetBtn').addEventListener('click', async () => 
   if(!ok) return;
   try{
     await setDoc(metaRef, { dates: arrayUnion(t) }, { merge: true });
+    alert('✓ Budget sudah direset ke Rp150.000 mulai hari ini.');
   }catch(e){
     console.error('gagal reset budget', e);
     alert('Gagal reset budget: ' + e.message);
@@ -551,6 +552,7 @@ document.getElementById('addBudgetBtn').addEventListener('click', async () => {
   const t = todayStr();
   try{
     await setDoc(metaRef, { extras: arrayUnion({ date: t, amount }) }, { merge: true });
+    alert(`✓ Budget hari ini nambah ${fmt(amount)}.`);
   }catch(e){
     console.error('gagal tambah budget', e);
     alert('Gagal tambah budget: ' + e.message);
