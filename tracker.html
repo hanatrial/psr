@@ -251,8 +251,12 @@
       <span id="budgetLabel">dari Rp150.000</span>
     </div>
     <div id="nonBudgetNote" style="font-size:.8rem;color:var(--ink-soft);margin-top:8px;display:none;"></div>
-    <button id="resetBudgetBtn" type="button" style="margin-top:12px;width:100%;padding:11px 0;font-size:.8rem;
-      background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:10px;">Reset budget ke Rp150.000</button>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button id="resetBudgetBtn" type="button" style="flex:1;padding:11px 0;font-size:.8rem;
+        background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:10px;">Reset budget ke Rp150.000</button>
+      <button id="addBudgetBtn" type="button" style="flex:1;padding:11px 0;font-size:.8rem;
+        background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:10px;">+ Tambah budget</button>
+    </div>
   </div>
 
   <div class="input-row" style="flex-direction:column;gap:8px;">
@@ -394,9 +398,13 @@ function getDateRange(startStr, endStr){
 // di halaman (nambah ke tracker_meta/budget_resets, tidak menyentuh data pengeluaran).
 const BUDGET_RESETS = ["2026-09-08", "2026-09-16"];
 let dynamicResets = [];
+let dynamicExtras = []; // [{date, amount}, ...] dari tombol "Tambah budget"
 
 function isResetDate(dateStr){
   return BUDGET_RESETS.includes(dateStr) || dynamicResets.includes(dateStr);
+}
+function extraForDate(dateStr){
+  return dynamicExtras.filter(e => e.date === dateStr).reduce((s,e) => s + e.amount, 0);
 }
 
 function computeDailyBudgets(){
@@ -415,7 +423,7 @@ function computeDailyBudgets(){
     const budgetEntries = entries.filter(it => it.budgetAffecting !== false);
     const spent = budgetEntries.reduce((s,it)=>s+it.amt,0);
     const nonBudgetSpent = entries.filter(it => it.budgetAffecting === false).reduce((s,it)=>s+it.amt,0);
-    const budget = BUDGET + carry;
+    const budget = BUDGET + carry + extraForDate(dateStr);
     const remaining = budget - spent;
     map[dateStr] = { budget, spent, nonBudgetSpent, remaining, count: entries.length };
     carry = remaining;
@@ -507,7 +515,9 @@ function subscribeData(onFirstLoad){
 }
 
 onSnapshot(metaRef, (snap) => {
-  dynamicResets = snap.exists() ? (snap.data().dates || []) : [];
+  const data = snap.exists() ? snap.data() : {};
+  dynamicResets = data.dates || [];
+  dynamicExtras = data.extras || [];
   renderSelectedDay();
   renderRecap();
 }, (err) => console.error('gagal memuat data reset budget', err));
@@ -521,6 +531,29 @@ document.getElementById('resetBudgetBtn').addEventListener('click', async () => 
   }catch(e){
     console.error('gagal reset budget', e);
     alert('Gagal reset budget: ' + e.message);
+  }
+});
+
+document.getElementById('addBudgetBtn').addEventListener('click', async () => {
+  const raw = window.prompt('Tambah budget hari ini sebesar berapa? (contoh: 50000 atau 50k)');
+  if(raw === null) return;
+  const cleaned = raw.trim().toLowerCase().replace(/\./g,'').replace(/,/g,'.');
+  const m = cleaned.match(/^(\d+(?:\.\d+)?)(k)?$/);
+  if(!m){
+    alert('Nominal tidak valid. Contoh: 50000 atau 50k');
+    return;
+  }
+  const amount = Math.round(parseFloat(m[1]) * (m[2] ? 1000 : 1));
+  if(amount <= 0){
+    alert('Nominal harus lebih dari 0.');
+    return;
+  }
+  const t = todayStr();
+  try{
+    await setDoc(metaRef, { extras: arrayUnion({ date: t, amount }) }, { merge: true });
+  }catch(e){
+    console.error('gagal tambah budget', e);
+    alert('Gagal tambah budget: ' + e.message);
   }
 });
 
