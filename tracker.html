@@ -302,7 +302,7 @@ makan 20k" rows="3" style="width:100%;resize:vertical;border:1px solid var(--lin
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion
+  getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, deleteDoc, updateDoc, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -551,7 +551,13 @@ document.getElementById('addBudgetBtn').addEventListener('click', async () => {
   }
   const t = todayStr();
   try{
-    await setDoc(metaRef, { extras: arrayUnion({ date: t, amount }) }, { merge: true });
+    // Bukan arrayUnion: Firestore arrayUnion dedupe elemen yang identik persis,
+    // jadi nambah nominal sama 2x di hari yang sama cuma kesimpan sekali kalau
+    // dipakai. Baca dulu extras yang ada, lalu tambahkan entri baru dengan id unik.
+    const snap = await getDoc(metaRef);
+    const extras = snap.exists() ? (snap.data().extras || []) : [];
+    extras.push({ date: t, amount, id: Date.now() + '-' + Math.random().toString(36).slice(2) });
+    await setDoc(metaRef, { extras }, { merge: true });
     alert(`✓ Budget hari ini nambah ${fmt(amount)}.`);
   }catch(e){
     console.error('gagal tambah budget', e);
