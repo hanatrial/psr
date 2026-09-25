@@ -230,6 +230,38 @@ function guessProvinsi(kab){
 }
 DATA.forEach(d => d.prov = guessProvinsi(d.kab));
 
+// Titik pasar yang jaraknya < MERGE_M dianggap 1 pasar: nama dari titik dengan omzet
+// terbesar; toko, operator, dan omzet memakai nilai tertinggi di grup.
+const MERGE_M = 100;
+const CAT_RANK = { "Prioritas Tinggi": 0, "Recheck Coverage MDS": 1, "Recheck Coverage Sales": 2, "Tidak Prioritas": 3 };
+function distM(a, b){
+  const R = 6371000, rad = x => x * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+  const q = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(q));
+}
+function mergeNearby(list){
+  const p = list.map((_, i) => i);
+  const find = x => p[x] === x ? x : (p[x] = find(p[x]));
+  for(let i = 0; i < list.length; i++)
+    for(let j = i + 1; j < list.length; j++)
+      if(distM(list[i], list[j]) < MERGE_M) p[find(i)] = find(j);
+  const groups = {};
+  list.forEach((d, i) => (groups[find(i)] = groups[find(i)] || []).push(d));
+  return Object.values(groups).map(rows => {
+    const best = rows.slice().sort((a, b) => b.omzet_total - a.omzet_total || CAT_RANK[a.kategori] - CAT_RANK[b.kategori])[0];
+    const withBlitz = rows.find(r => BLITZ[r.kab + '|' + r.pasar]);
+    return Object.assign({}, best, {
+      toko: Math.max(...rows.map(r => r.toko)),
+      operator: Math.max(...rows.map(r => r.operator)),
+      omzet_total: Math.max(...rows.map(r => r.omzet_total)),
+      blitz: withBlitz ? BLITZ[withBlitz.kab + '|' + withBlitz.pasar] : null,
+      merged: rows.length
+    });
+  });
+}
+const MARKETS = mergeNearby(DATA);
+
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtRp(n){
   if(n >= 1e9) return "Rp " + (n/1e9).toFixed(1) + " M";
@@ -246,7 +278,7 @@ const MAP_MID = "1_8IsynnyWET9ve7EaRRkc9FQMfYlKes";
 function buildAreaSelect(){
   const sel = document.getElementById('areaSelect');
   const byProv = {};
-  DATA.filter(d => SHOW_CATS.includes(d.kategori)).forEach(d => { (byProv[d.prov] = byProv[d.prov] || new Set()).add(d.kab); });
+  MARKETS.filter(d => SHOW_CATS.includes(d.kategori)).forEach(d => { (byProv[d.prov] = byProv[d.prov] || new Set()).add(d.kab); });
   const total = Object.values(byProv).reduce((s, set) => s + set.size, 0);
   let html = `<option value="">Semua area (${total} kab/kota)</option>`;
   Object.keys(byProv).sort().forEach(p => {
@@ -259,7 +291,7 @@ function buildAreaSelect(){
 
 let rows = [];
 function render(){
-  rows = DATA.filter(d => SHOW_CATS.includes(d.kategori) && (!activeArea || d.kab === activeArea));
+  rows = MARKETS.filter(d => SHOW_CATS.includes(d.kategori) && (!activeArea || d.kab === activeArea));
   rows.sort((a, b) => SHOW_CATS.indexOf(a.kategori) - SHOW_CATS.indexOf(b.kategori) || b.omzet_total - a.omzet_total);
 
   const cnt = c => rows.filter(d => d.kategori === c).length;
@@ -275,7 +307,7 @@ function render(){
   if(!rows.length){ body.innerHTML = '<tr><td colspan="5" class="empty">Tidak ada pasar Prioritas Tinggi / Recheck MDS di area ini.</td></tr>'; }
   else body.innerHTML = rows.map((d, i) => `
     <tr>
-      <td class="nm"><a href="${gmapsUrl(d)}" target="_blank" rel="noopener">${esc(d.pasar)}</a>${BLITZ[d.kab + '|' + d.pasar] ? `<button type="button" class="bz" data-i="${i}" title="Report Blitz">🔥</button>` : ''}${activeArea ? '' : `<small>${esc(d.kab)}</small>`}</td>
+      <td class="nm"><a href="${gmapsUrl(d)}" target="_blank" rel="noopener">${esc(d.pasar)}</a>${d.blitz ? `<button type="button" class="bz" data-i="${i}" title="Report Blitz">🔥</button>` : ''}${activeArea ? '' : `<small>${esc(d.kab)}</small>`}</td>
       <td><span class="badge" style="background:${CATS[d.kategori]}">${esc(d.kategori)}</span></td>
       <td class="num">${d.toko}</td>
       <td class="num">${d.operator}</td>
@@ -283,7 +315,7 @@ function render(){
     </tr>`).join('');
   body.querySelectorAll('.bz').forEach(b => b.addEventListener('click', () => {
     const d = rows[parseInt(b.dataset.i)];
-    showBlitzModal(d, BLITZ[d.kab + '|' + d.pasar]);
+    showBlitzModal(d, d.blitz);
   }));
 
   let url = 'https://www.google.com/maps/d/viewer?mid=' + MAP_MID;
