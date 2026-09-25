@@ -102,10 +102,6 @@
 </head>
 <body>
 <div class="wrap">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-    <button type="button" id="menuBtn" style="background:none;border:1px solid var(--border);color:var(--text3);
-      border-radius:8px;padding:5px 11px;font-size:11.5px;cursor:pointer;font-family:inherit">☰ Menu</button>
-  </div>
   <div class="page-toggle" id="pageToggle" hidden>
     <a href="index.html" class="pt-btn active">Peta Sebaran</a>
     <a href="tuset.html" class="pt-btn">Tuset</a>
@@ -345,9 +341,16 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') closeBlitzMod
 
 function renderAll(){ buildCats(); buildPasarList(); renderSummary(false); }
 
-document.getElementById('menuBtn').addEventListener('click', () => {
-  const t = document.getElementById('pageToggle');
-  t.hidden = !t.hidden;
+const pageToggle = document.getElementById('pageToggle');
+function toggleMenu(){ pageToggle.hidden = !pageToggle.hidden; }
+document.addEventListener('keydown', e => {
+  if(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm'){ e.preventDefault(); toggleMenu(); }
+});
+let titleTaps = [];
+document.querySelector('h1').addEventListener('click', () => {
+  const now = Date.now();
+  titleTaps = titleTaps.filter(t => now - t < 1200).concat(now);
+  if(titleTaps.length >= 3){ titleTaps = []; toggleMenu(); }
 });
 
 buildAreaSelect();
