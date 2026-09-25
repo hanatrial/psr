@@ -95,6 +95,20 @@
   .blitz-insight .l{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:6px;font-weight:700}
   .blitz-insight p{font-size:13.5px;line-height:1.7;color:var(--text2)}
 
+  #areaSelect{margin:6px 0 16px}
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface);margin-bottom:16px}
+  table.ptable{width:100%;border-collapse:collapse;font-size:12.5px}
+  .ptable th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);
+    padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border);white-space:nowrap}
+  .ptable td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .ptable tr:last-child td{border-bottom:none}
+  .ptable .num{text-align:right;font-family:'DM Mono',monospace;white-space:nowrap}
+  .ptable .nm{font-weight:600;line-height:1.3}
+  .ptable .nm small{display:block;font-weight:400;color:var(--text3);font-size:11px;margin-top:1px}
+  .ptable .nm a{color:inherit;text-decoration:none;border-bottom:1px dotted var(--text3)}
+  .ptable .nm a:hover{color:var(--accent)}
+  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;color:#0b0f17;white-space:nowrap}
+  .bz{background:none;border:none;cursor:pointer;font-size:13px;padding:0 0 0 4px}
   ::-webkit-scrollbar{width:6px}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
   @media (max-width:420px){ .s-grid{grid-template-columns:1fr 1fr} .cats{grid-template-columns:1fr} }
@@ -109,31 +123,22 @@
   </div>
 
   <h1>Serbu Pasar Sulawesi</h1>
-  <div class="sub">Pilih area dan kategori pasar, lalu buka lokasinya di Google Maps.</div>
+  <div class="sub">Pilih area untuk melihat pasar Prioritas Tinggi dan Recheck Coverage MDS.</div>
 
-  <div class="step">
-    <div class="step-label"><span class="step-num">1</span> Pilih area</div>
-    <select id="areaSelect"></select>
+  <select id="areaSelect"></select>
+
+  <div class="area-sum" id="areaSum"></div>
+
+  <div class="table-wrap">
+    <table class="ptable">
+      <thead><tr>
+        <th>Nama Pasar</th><th>Kategori</th><th class="num">Toko</th><th class="num">Operator</th><th class="num">Omzet</th>
+      </tr></thead>
+      <tbody id="pasarBody"></tbody>
+    </table>
   </div>
 
-  <div class="step">
-    <div class="step-label"><span class="step-num">2</span> Pilih kategori pasar</div>
-    <div class="cats" id="catList"></div>
-    <div class="cat-desc" id="catDesc"></div>
-  </div>
-
-  <div class="step">
-    <div class="step-label"><span class="step-num">3</span> Pilih pasar</div>
-    <div class="area-sum" id="areaSum"></div>
-    <input type="text" id="pasarSearch" placeholder="Cari nama pasar…">
-    <div class="pasar-list" id="pasarList"></div>
-  </div>
-
-  <div class="step" id="summaryStep">
-    <div class="step-label"><span class="step-num">4</span> Ringkasan</div>
-    <div class="summary" id="summary"></div>
-    <div class="empty" id="summaryHint" style="border:1px dashed var(--border);border-radius:10px">Pilih satu pasar di atas untuk melihat ringkasannya.</div>
-  </div>
+  <a class="s-link" id="mapLink" href="#" target="_blank" rel="noopener">Buka peta untuk lihat area lainnya ↗</a>
 </div>
 
 <div class="blitz-overlay" id="blitzOverlay">
@@ -235,90 +240,59 @@ function fmtRp(n){
 function gmapsUrl(d){ return "https://www.google.com/maps/d/viewer?mid=1_8IsynnyWET9ve7EaRRkc9FQMfYlKes&ll=" + d.lat + "%2C" + d.lon + "&z=17"; }
 
 let activeArea = '';
-let activeCat = 'Prioritas Tinggi';
-let selected = null;
-let shown = [];
-
-function inArea(d){ return !activeArea || d.kab === activeArea; }
+const SHOW_CATS = ["Prioritas Tinggi", "Recheck Coverage MDS"];
+const MAP_MID = "1_8IsynnyWET9ve7EaRRkc9FQMfYlKes";
 
 function buildAreaSelect(){
   const sel = document.getElementById('areaSelect');
   const byProv = {};
-  DATA.forEach(d => { (byProv[d.prov] = byProv[d.prov] || new Set()).add(d.kab); });
-  const kabCount = new Set(DATA.map(d => d.kab)).size;
-  let html = `<option value="">Semua area (${kabCount} kab/kota)</option>`;
+  DATA.filter(d => SHOW_CATS.includes(d.kategori)).forEach(d => { (byProv[d.prov] = byProv[d.prov] || new Set()).add(d.kab); });
+  const total = Object.values(byProv).reduce((s, set) => s + set.size, 0);
+  let html = `<option value="">Semua area (${total} kab/kota)</option>`;
   Object.keys(byProv).sort().forEach(p => {
     html += `<optgroup label="${esc(p)}">` +
       [...byProv[p]].sort().map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('') + `</optgroup>`;
   });
   sel.innerHTML = html;
-  sel.onchange = () => { activeArea = sel.value; selected = null; renderAll(); };
+  sel.onchange = () => { activeArea = sel.value; render(); };
 }
 
-function buildCats(){
-  const el = document.getElementById('catList');
-  el.innerHTML = Object.keys(CATS).map(cat => {
-    const count = DATA.filter(d => d.kategori === cat && inArea(d)).length;
-    return `<div class="cat${cat === activeCat ? ' sel' : ''}" data-cat="${esc(cat)}" style="color:${CATS[cat]}">
-      <span class="dot" style="background:${CATS[cat]}"></span>
-      <span class="nm">${esc(cat)}</span><span class="ct">${count}</span></div>`;
-  }).join('');
-  el.querySelectorAll('.cat').forEach(c => c.addEventListener('click', () => {
-    activeCat = c.dataset.cat; selected = null; renderAll();
-  }));
-  document.getElementById('catDesc').textContent = CAT_DESC[activeCat];
-}
+let rows = [];
+function render(){
+  rows = DATA.filter(d => SHOW_CATS.includes(d.kategori) && (!activeArea || d.kab === activeArea));
+  rows.sort((a, b) => SHOW_CATS.indexOf(a.kategori) - SHOW_CATS.indexOf(b.kategori) || b.omzet_total - a.omzet_total);
 
-function buildPasarList(){
-  const term = document.getElementById('pasarSearch').value.trim().toLowerCase();
-  let list = DATA.filter(d => d.kategori === activeCat && inArea(d));
-
-  const toko = list.reduce((s,d) => s + d.toko, 0);
-  const op = list.reduce((s,d) => s + d.operator, 0);
+  const cnt = c => rows.filter(d => d.kategori === c).length;
+  const toko = rows.reduce((s, d) => s + d.toko, 0);
+  const op = rows.reduce((s, d) => s + d.operator, 0);
   document.getElementById('areaSum').innerHTML =
-    `<div class="box"><div class="n">${list.length}</div><div class="l">Pasar</div></div>
+    `<div class="box"><div class="n">${cnt(SHOW_CATS[0])}</div><div class="l">Prioritas Tinggi</div></div>
+     <div class="box"><div class="n">${cnt(SHOW_CATS[1])}</div><div class="l">Recheck MDS</div></div>
      <div class="box"><div class="n">${toko.toLocaleString('id-ID')}</div><div class="l">Toko</div></div>
      <div class="box"><div class="n">${op.toLocaleString('id-ID')}</div><div class="l">Operator</div></div>`;
 
-  if(term) list = list.filter(d => d.pasar.toLowerCase().includes(term) || d.kab.toLowerCase().includes(term));
-  list.sort((a,b) => b.omzet_total - a.omzet_total);
-  shown = list;
-
-  const wrap = document.getElementById('pasarList');
-  if(!list.length){ wrap.innerHTML = `<div class="empty">Tidak ada pasar untuk pilihan ini.</div>`; return; }
-  wrap.innerHTML = list.map((d, i) => `
-    <div class="pasar-item${selected === d ? ' sel' : ''}" data-i="${i}">
-      <span class="p-name">${esc(d.pasar)}${activeArea ? '' : `<span class="p-kab">${esc(d.kab)}</span>`}</span>
-      <span class="p-omzet">${d.omzet_total > 0 ? fmtRp(d.omzet_total) : '—'}</span>
-    </div>`).join('');
-  wrap.querySelectorAll('.pasar-item').forEach(it => it.addEventListener('click', () => {
-    selected = shown[parseInt(it.dataset.i)];
-    buildPasarList();
-    renderSummary(true);
+  const body = document.getElementById('pasarBody');
+  if(!rows.length){ body.innerHTML = '<tr><td colspan="5" class="empty">Tidak ada pasar Prioritas Tinggi / Recheck MDS di area ini.</td></tr>'; }
+  else body.innerHTML = rows.map((d, i) => `
+    <tr>
+      <td class="nm"><a href="${gmapsUrl(d)}" target="_blank" rel="noopener">${esc(d.pasar)}</a>${BLITZ[d.kab + '|' + d.pasar] ? `<button type="button" class="bz" data-i="${i}" title="Report Blitz">🔥</button>` : ''}${activeArea ? '' : `<small>${esc(d.kab)}</small>`}</td>
+      <td><span class="badge" style="background:${CATS[d.kategori]}">${esc(d.kategori)}</span></td>
+      <td class="num">${d.toko}</td>
+      <td class="num">${d.operator}</td>
+      <td class="num">${d.omzet_total > 0 ? fmtRp(d.omzet_total) : '—'}</td>
+    </tr>`).join('');
+  body.querySelectorAll('.bz').forEach(b => b.addEventListener('click', () => {
+    const d = rows[parseInt(b.dataset.i)];
+    showBlitzModal(d, BLITZ[d.kab + '|' + d.pasar]);
   }));
-}
 
-function renderSummary(scroll){
-  const box = document.getElementById('summary');
-  const hint = document.getElementById('summaryHint');
-  if(!selected){ box.classList.remove('show'); hint.style.display = ''; return; }
-  const d = selected;
-  const blitz = BLITZ[d.kab + '|' + d.pasar];
-  hint.style.display = 'none';
-  box.innerHTML = `
-    <div class="s-kab">${esc(d.kab)} · ${esc(d.prov)}</div>
-    <div class="s-name">${esc(d.pasar)}</div>
-    <span class="s-cat" style="background:${CATS[d.kategori]}">${esc(d.kategori)}</span>
-    <div class="s-grid">
-      <div class="s-box"><div class="l">Toko</div><div class="v">${d.toko}</div></div>
-      <div class="s-box"><div class="l">Operator</div><div class="v">${d.operator}</div></div>
-      <div class="s-box"><div class="l">Omzet</div><div class="v">${d.omzet_total > 0 ? fmtRp(d.omzet_total) : '—'}</div></div>
-    </div>
-    ${blitz ? `<button type="button" class="s-blitz" id="blitzBtn">🔥 Lihat report Blitz HiLo Matcha</button>` : ''}
-    <a class="s-link" href="${gmapsUrl(d)}" target="_blank" rel="noopener">Buka di Google Maps ↗</a>`;
-  box.classList.add('show');
-  if(blitz) document.getElementById('blitzBtn').addEventListener('click', () => showBlitzModal(d, blitz));
-  if(scroll) box.scrollIntoView({behavior:'smooth', block:'nearest'});
+  let url = 'https://www.google.com/maps/d/viewer?mid=' + MAP_MID;
+  if(activeArea && rows.length){
+    const lat = rows.reduce((s, d) => s + d.lat, 0) / rows.length;
+    const lon = rows.reduce((s, d) => s + d.lon, 0) / rows.length;
+    url += '&ll=' + lat + '%2C' + lon + '&z=11';
+  }
+  document.getElementById('mapLink').href = url;
 }
 
 function showBlitzModal(d, blitz){
@@ -339,7 +313,6 @@ document.getElementById('blitzClose').addEventListener('click', closeBlitzModal)
 document.getElementById('blitzOverlay').addEventListener('click', e => { if(e.target.id === 'blitzOverlay') closeBlitzModal(); });
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeBlitzModal(); });
 
-function renderAll(){ buildCats(); buildPasarList(); renderSummary(false); }
 
 const pageToggle = document.getElementById('pageToggle');
 function toggleMenu(){ pageToggle.hidden = !pageToggle.hidden; }
@@ -354,8 +327,7 @@ document.querySelector('h1').addEventListener('click', () => {
 });
 
 buildAreaSelect();
-renderAll();
-document.getElementById('pasarSearch').addEventListener('input', buildPasarList);
+render();
 </script>
 </body>
 </html>
