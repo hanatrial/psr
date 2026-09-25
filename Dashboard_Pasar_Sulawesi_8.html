@@ -16,6 +16,7 @@
 
   .page-toggle{display:flex;background:var(--card);border:1px solid var(--border);border-radius:9px;
     padding:3px;gap:3px;margin-bottom:22px}
+  .page-toggle[hidden]{display:none}
   .pt-btn{flex:1;text-align:center;padding:8px 10px;border-radius:6px;font-size:12px;font-weight:600;
     color:var(--text3);text-decoration:none;transition:background .15s,color .15s}
   .pt-btn:hover{color:var(--text2)}
@@ -101,7 +102,11 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="page-toggle">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <button type="button" id="menuBtn" style="background:none;border:1px solid var(--border);color:var(--text3);
+      border-radius:8px;padding:5px 11px;font-size:11.5px;cursor:pointer;font-family:inherit">☰ Menu</button>
+  </div>
+  <div class="page-toggle" id="pageToggle" hidden>
     <a href="index.html" class="pt-btn active">Peta Sebaran</a>
     <a href="tuset.html" class="pt-btn">Tuset</a>
     <a href="tracker.html" class="pt-btn">Tracker</a>
@@ -339,6 +344,11 @@ document.getElementById('blitzOverlay').addEventListener('click', e => { if(e.ta
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeBlitzModal(); });
 
 function renderAll(){ buildCats(); buildPasarList(); renderSummary(false); }
+
+document.getElementById('menuBtn').addEventListener('click', () => {
+  const t = document.getElementById('pageToggle');
+  t.hidden = !t.hidden;
+});
 
 buildAreaSelect();
 renderAll();
