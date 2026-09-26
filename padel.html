@@ -2473,7 +2473,7 @@ async function shareSummary(){
   saveState();
   await pushChanges();
   // Link yang dibagikan selalu pakai domain Firebase Hosting (bukan github.io)
-  const base = location.hostname.endsWith('github.io') ? 'https://padelpadel.web.app/padel.html' : location.origin + location.pathname;
+  const base = location.hostname.endsWith('github.io') ? 'https://padel-padel.web.app/padel.html' : location.origin + location.pathname;
   const url = base + '?live=' + encodeURIComponent(id);
   try{
     if(navigator.share){ await navigator.share({ title: activeSessionTitle() || 'Padel', url }); return; }
