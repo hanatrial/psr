@@ -2509,6 +2509,68 @@ async function bootViewer(){
   }
 }
 
+// ==================== WAJIB INSTALL (khusus HP) ====================
+// Di HP, kalau dibuka lewat browser biasa, layar ditutup sampai aplikasi dipasang.
+// Tidak berlaku untuk link live (penonton) dan untuk laptop/desktop.
+let deferredInstallPrompt = null;
+let installedJustNow = false;
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function isIosDevice(){
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isMobileDevice(){
+  return /Android/i.test(navigator.userAgent) || isIosDevice();
+}
+function inAppBrowser(){
+  return /FBAN|FBAV|Instagram|Line\/|MicroMessenger|; wv\)/i.test(navigator.userAgent);
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; updateInstallGate(); });
+window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; installedJustNow = true; updateInstallGate(); });
+
+async function doInstall(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  try{ await deferredInstallPrompt.userChoice; }catch(e){}
+  deferredInstallPrompt = null;
+  updateInstallGate();
+}
+
+function updateInstallGate(){
+  if(VIEW_ONLY || isStandalone() || !isMobileDevice()) return;
+  let g = document.getElementById('installGate');
+  if(!g){
+    g = document.createElement('div');
+    g.id = 'installGate';
+    g.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#f9fbfa;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;gap:12px;overflow:auto;font-family:inherit;color:#1a1d29';
+    document.body.appendChild(g);
+    document.body.style.overflow = 'hidden';
+  }
+  const btnCss = 'margin-top:6px;padding:14px 28px;border:none;border-radius:12px;background:#1f4e8c;color:#fff;font-size:16px;font-weight:700;cursor:pointer';
+  let body;
+  if(installedJustNow){
+    body = '<p style="font-size:16px;margin:0;">✅ Aplikasi sudah terpasang.</p><p style="margin:0;color:#6b7280;">Tutup halaman ini, lalu buka <b>Padel</b> dari layar utama HP kamu.</p>';
+  } else if(inAppBrowser()){
+    body = '<p style="margin:0;color:#6b7280;">Link ini terbuka di browser bawaan aplikasi lain, jadi belum bisa dipasang.</p><p style="margin:0;"><b>Buka link ini di ' + (isIosDevice() ? 'Safari' : 'Chrome') + '</b> (menu ⋮ atau tombol bagikan → “Buka di browser”), lalu install.</p>';
+  } else if(isIosDevice()){
+    body = '<p style="margin:0;color:#6b7280;">Cara install di iPhone/iPad (pakai Safari):</p><ol style="text-align:left;margin:4px 0;padding-left:22px;line-height:1.7;"><li>Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas)</li><li>Pilih <b>Tambahkan ke Layar Utama</b></li><li>Ketuk <b>Tambah</b>, lalu buka <b>Padel</b> dari layar utama</li></ol>';
+  } else if(deferredInstallPrompt){
+    body = '<button id="installBtn" style="' + btnCss + '">Install aplikasi</button>';
+  } else {
+    body = '<p style="margin:0;color:#6b7280;">Cara install di Android (pakai Chrome):</p><ol style="text-align:left;margin:4px 0;padding-left:22px;line-height:1.7;"><li>Ketuk menu <b>⋮</b> di pojok kanan atas</li><li>Pilih <b>Instal aplikasi</b> / <b>Tambahkan ke layar utama</b></li><li>Buka <b>Padel</b> dari layar utama</li></ol>';
+  }
+  g.innerHTML = '<img src="icon-padel-192.png" alt="" style="width:96px;height:96px;border-radius:22px;">'
+    + '<h2 style="margin:6px 0 0;font-size:22px;">Install aplikasi Padel dulu</h2>'
+    + '<p style="margin:0;color:#6b7280;max-width:320px;">Untuk memakai Padel, aplikasinya harus dipasang di HP kamu terlebih dahulu.</p>'
+    + body
+    + (installedJustNow ? '' : '<p style="margin:10px 0 0;font-size:12px;color:#9ca3af;max-width:320px;">Sudah pernah install? Buka lewat ikon <b>Padel</b> di layar utama HP kamu.</p>');
+  const b = document.getElementById('installBtn');
+  if(b) b.onclick = doInstall;
+}
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw-padel.js').catch(() => {}); }
+updateInstallGate();
+
 if(VIEW_ONLY) bootViewer(); else boot();
 
 </script>
