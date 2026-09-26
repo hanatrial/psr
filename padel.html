@@ -444,7 +444,6 @@
   <button class="btn" id="genBtn" onclick="generate()">Buat Jadwal</button>
   <button class="btn secondary hidden" id="resumeBtn" onclick="showRoundPageOnly()">Kembali ke Jadwal</button>
 </div>
-<div class="info" style="margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="if(confirm('Hapus cache lokal di perangkat ini? Data online tidak ikut terhapus.')) resetAllData();">Hapus cache lokal perangkat ini</div>
 <div class="error" id="errorMsg"></div>
 </div>
 
@@ -950,11 +949,6 @@ function renderPadelSessionList(){
       </div>
     </div>`;
   }).join('');
-}
-
-function resetAllData(){
-  try{ localStorage.removeItem(PADEL_STORAGE_KEY); }catch(e){}
-  location.reload();
 }
 
 
