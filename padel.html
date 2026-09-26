@@ -2525,19 +2525,20 @@ function renderViewerBody(){
   const choice = getViewerChoice();
   const p = players.find(x => String(x.id) === choice);
   HIGHLIGHT_PID = p ? p.id : null;
-  let top = '';
-  if(choice === null || viewerPicking){
-    top = '<div class="card" style="margin-bottom:12px;"><div style="font-weight:800;margin-bottom:4px;">Kamu siapa di sesi ini?</div>'
-      + '<div class="info" style="margin-bottom:10px;">Pilih namamu supaya semua round kamu ditandai kuning. Pilihan disimpan di HP ini.</div>'
+
+  // Wajib pilih nama dulu: summary baru tampil setelah memilih pemain.
+  if(!p || viewerPicking){
+    body.innerHTML = '<div class="card" style="margin-top:8px;"><div style="font-weight:800;font-size:18px;margin-bottom:4px;">Kamu siapa di sesi ini?</div>'
+      + '<div class="info" style="margin-bottom:12px;">Pilih namamu dulu untuk melihat summary. Semua round kamu akan ditandai kuning. Pilihan disimpan di HP ini.</div>'
       + '<div style="display:flex;flex-wrap:wrap;gap:8px;">'
       + players.map(pl => '<button class="btn secondary" onclick="pickViewer(\'' + pl.id + '\')">' + escapeHtml(pl.name) + '</button>').join('')
-      + '<button class="btn secondary" style="opacity:.7;" onclick="pickViewer(\'skip\')">Lewati</button></div></div>';
-  } else if(p){
-    top = '<div class="info" style="text-align:center;margin:0 0 10px;">Kamu: <b>' + escapeHtml(p.name) + '</b> · <span style="text-decoration:underline;cursor:pointer;" onclick="changeViewer()">ganti</span></div>';
-  } else {
-    top = '<div class="info" style="text-align:center;margin:0 0 10px;">Tidak memilih pemain · <span style="text-decoration:underline;cursor:pointer;" onclick="changeViewer()">pilih namamu</span></div>';
+      + '</div>'
+      + (p ? '<div class="info" style="margin-top:12px;text-decoration:underline;cursor:pointer;" onclick="viewerPicking=false;renderViewerBody();">Batal</div>' : '')
+      + '</div>';
+    return;
   }
-  body.innerHTML = top + buildSummaryHtml(currentSession);
+  body.innerHTML = '<div class="info" style="text-align:center;margin:0 0 10px;">Kamu: <b>' + escapeHtml(p.name) + '</b> · <span style="text-decoration:underline;cursor:pointer;" onclick="changeViewer()">ganti</span></div>'
+    + buildSummaryHtml(currentSession);
 }
 
 // Halaman baca-saja: ?live=<id sesi>. Tanpa login, tanpa menulis apa pun.
