@@ -202,6 +202,8 @@
   .player-row .avatar-circle{ width:26px; height:26px; }
   .player-row .avatar-circle svg{ width:14px; height:14px; }
 
+  .round-group{ border:2px solid #ef4444; border-radius:20px; padding:8px; margin-bottom:14px; }
+  .round-group .all-match-item:last-child{ margin-bottom:0; }
   .match-card.compact .court-header{ font-size:16px; padding:10px 14px; }
   .match-card.compact .score-row{ padding:16px 14px 8px; gap:12px; }
   .match-card.compact .score-box{ padding:14px 0; font-size:30px; border-radius:12px; max-width:110px; }
@@ -460,6 +462,7 @@
 
   <div class="btn-row">
     <button class="btn secondary" id="summaryToggleBtn" onclick="toggleSummary()">📊 Lihat Summary</button>
+    <button class="btn secondary" id="shareBtn" onclick="shareSummary()">🔗 Bagikan link live</button>
   </div>
   <div id="summaryPanel" class="hidden"></div>
 
@@ -476,6 +479,8 @@
 <script>
 
 const HISTORY_STORAGE_KEY = 'matchHistoryApp_v1';
+const VIEW_ID = new URLSearchParams(location.search).get('live'); // link "live" khusus baca
+const VIEW_ONLY = !!VIEW_ID;
 let db = { users: {}, history: {} };
 let currentUser = null;
 
@@ -499,6 +504,7 @@ function loadDb(){
   }catch(e){ /* ignore */ }
 }
 function saveDb(){
+  if(VIEW_ONLY) return;
   try{ localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(db)); }catch(e){}
   scheduleCloudPush();
 }
@@ -713,6 +719,7 @@ function removePlayer(id){
 // rounds, summary, history sync-by-name) without touching any schedule
 // data at all.
 function renamePlayer(id){
+  if(VIEW_ONLY) return;
   const player = players.find(p=>p.id===id);
   if(!player) return;
   const newName = prompt('Ganti nama jadi apa?', player.name);
@@ -823,11 +830,13 @@ function loadPadelDb(){
   if(!padelDb.sessions) padelDb.sessions = {};
 }
 function savePadelDb(){
+  if(VIEW_ONLY) return;
   try{ localStorage.setItem(PADEL_STORAGE_KEY, JSON.stringify(padelDb)); }catch(e){}
   scheduleCloudPush();
 }
 
 function saveState(){
+  if(VIEW_ONLY) return;
   try{
     const id = padelDb.activeSessionId;
     if(!id) return;
@@ -873,7 +882,7 @@ function loadSessionIntoMemory(id){
 
 // Starts a brand new named Padel session and makes it the active one.
 function createNewPadelSession(title){
-  const id = 'sess_' + Date.now();
+  const id = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   padelDb.sessions[id] = {
     title, createdAt: new Date().toISOString(), owner: currentUser,
     players: [], fixedPairs: [], nextId: 1,
@@ -1789,6 +1798,7 @@ function findPlayerLocation(round, playerId){
 }
 
 function openPlayerSwapModal(roundIdx, playerId){
+  if(VIEW_ONLY) return;
   if(currentSession.fixedPairMap && currentSession.fixedPairMap[playerId]!==undefined){
     alert('Fixed pair gak bisa ditukar satu per satu — mereka emang selalu main bareng partnernya.');
     return;
@@ -2055,7 +2065,7 @@ function buildSummaryHtml(session){
       html += `<div class="board-row ${tier}">
         <span class="board-rank">${ordinal(i+1)}</span>
         ${avatarSvg()}
-        <span class="board-name" onclick="renamePlayer(${p.id})" style="cursor:pointer; text-decoration:underline dotted;" title="Ketuk untuk ganti nama">${escapeHtml(p.name)}</span>
+        <span class="board-name" ${VIEW_ONLY ? '' : `onclick="renamePlayer(${p.id})" style="cursor:pointer; text-decoration:underline dotted;" title="Ketuk untuk ganti nama"`}>${escapeHtml(p.name)}</span>
         <span class="board-wlt">${s.win}-${s.lose}-${s.draw}</span>
         <span class="board-diff">${diff>0?'+':''}${diff}</span>
         <span class="board-pts">${s.poin}</span>
@@ -2148,6 +2158,7 @@ function buildSummaryHtml(session){
     <h3 style="margin-top:0; font-size:15px;">Semua Match</h3>`;
   let matchNo = 0;
   rounds.forEach((round, r)=>{
+    html += `<div class="round-group">`;
     round.matches.forEach((match, c)=>{
       matchNo++;
       const [teamA, teamB] = match;
@@ -2174,6 +2185,7 @@ function buildSummaryHtml(session){
         </div>
       </div>`;
     });
+    html += `</div>`;
   });
   html += `</div>`;
 
@@ -2385,6 +2397,7 @@ async function initCloud(){
 }
 
 function scheduleCloudPush(){
+  if(VIEW_ONLY) return;
   clearTimeout(pushTimer);
   pushTimer = setTimeout(pushChanges, 700);
 }
@@ -2452,7 +2465,55 @@ async function boot(){
   updateScoreFormatInfo();
   if(CLOUD.loaded) pushChanges();
 }
-boot();
+
+async function shareSummary(){
+  const id = padelDb.activeSessionId;
+  if(!id){ alert('Buka sesi dulu.'); return; }
+  if(!CLOUD.loaded){ alert('Belum tersambung ke cloud. Tunggu badge "☁ Tersinkron" di kiri bawah, lalu coba lagi.'); return; }
+  saveState();
+  await pushChanges();
+  const url = location.origin + location.pathname + '?live=' + encodeURIComponent(id);
+  try{
+    if(navigator.share){ await navigator.share({ title: activeSessionTitle() || 'Padel', url }); return; }
+  }catch(e){ if(e && e.name === 'AbortError') return; }
+  try{
+    await navigator.clipboard.writeText(url);
+    alert('Link live disalin:\n' + url + '\n\nSiapa pun yang punya link ini bisa melihat summary secara live (tanpa login, hanya baca).');
+  }catch(e){
+    prompt('Salin link live ini:', url);
+  }
+}
+
+// Halaman baca-saja: ?live=<id sesi>. Tanpa login, tanpa menulis apa pun.
+async function bootViewer(){
+  ['authPage', 'appPage', 'padelApp'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  const root = document.createElement('div');
+  root.id = 'viewerRoot';
+  root.innerHTML = '<div id="viewerStatus" class="info" style="text-align:center;margin:10px 0;">Memuat…</div><div id="viewerBody"></div>';
+  document.body.appendChild(root);
+  const status = document.getElementById('viewerStatus');
+  const body = document.getElementById('viewerBody');
+  try{
+    const [appMod, fsMod] = await Promise.all([import(FB_APP), import(FB_FS)]);
+    const f = fsMod.getFirestore(appMod.initializeApp(firebaseConfig));
+    fsMod.onSnapshot(fsMod.doc(f, 'padel_sessions', VIEW_ID), snap => {
+      if(!snap.exists()){ body.innerHTML = ''; status.textContent = 'Sesi tidak ditemukan atau sudah dihapus.'; return; }
+      try{
+        padelDb.sessions[VIEW_ID] = JSON.parse(snap.data().json);
+        padelDb.activeSessionId = VIEW_ID;
+        loadSessionIntoMemory(VIEW_ID);
+        if(!currentSession){ body.innerHTML = ''; status.textContent = 'Jadwal belum dibuat oleh pembuat sesi.'; return; }
+        body.innerHTML = buildSummaryHtml(currentSession);
+        status.textContent = '🔴 Live · update ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' · hanya baca';
+      }catch(e){ console.error(e); status.textContent = 'Gagal menampilkan data sesi.'; }
+    }, err => { console.error(err); status.textContent = 'Gagal memuat (' + (err.code || 'error') + ').'; });
+  }catch(e){
+    console.error(e);
+    status.textContent = 'Gagal terhubung. Cek koneksi internet.';
+  }
+}
+
+if(VIEW_ONLY) bootViewer(); else boot();
 
 </script>
 </body>
