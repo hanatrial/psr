@@ -196,7 +196,6 @@
   .team-col{
     flex:1; background:#f7f8fa; border-radius:14px; padding:10px 12px;
   }
-  .team-col.fixed-team{ background:#dcfce7; }
   .all-match-item.mine{ box-shadow:0 0 0 2px #facc15; background:#fdecf0; }
   .player-row.me{ background:#fef3c7; border-radius:8px; }
   .progress-table tr.my-row td{ border-top:2px solid #facc15 !important; border-bottom:2px solid #facc15 !important; }
@@ -309,6 +308,9 @@
   .progress-table .sticky-col{
     position:sticky; left:0; background:var(--card); text-align:left; font-weight:600;
     box-shadow:1px 0 0 var(--border);
+  }
+  .progress-table td.play-streak{
+    color:#15803d; font-weight:800; background:#dcfce7;
   }
   .progress-table td.rest-warn{
     color:#dc2626; font-weight:800; background:#fee2e2;
@@ -2108,34 +2110,6 @@ function buildSummaryHtml(session){
     });
     html += `</tr></thead><tbody>`;
 
-    // figure out, per round, which (non-fixed) players were on a team that
-    // had already partnered together before (2nd+ time) — flagged below.
-    // Each distinct repeating pair gets its own color so it's easy to see
-    // which two players it actually is when several show up at once.
-    // Fixed pairs are excluded here since repeating is expected for them
-    // every round — they get their name highlighted green instead.
-    const repeatPlayersByRound = rounds.map(()=> new Map()); // playerId -> pairKey
-    const runningPartnerCount = {};
-    const pairColorIndex = {};
-    let nextColorIdx = 0;
-    const REPEAT_COLOR_COUNT = 8;
-    rounds.forEach((round, r)=>{
-      round.matches.forEach(([teamA, teamB])=>{
-        [teamA, teamB].forEach(team=>{
-          if(isFixedTeam(team)) return;
-          const key = pairKey(team[0], team[1]);
-          runningPartnerCount[key] = (runningPartnerCount[key]||0) + 1;
-          if(runningPartnerCount[key] >= 2){
-            if(pairColorIndex[key]===undefined){
-              pairColorIndex[key] = nextColorIdx % REPEAT_COLOR_COUNT;
-              nextColorIdx++;
-            }
-            team.forEach(id=> repeatPlayersByRound[r].set(id, key));
-          }
-        });
-      });
-    });
-
     players.forEach(p=>{
       // find rounds where this player sat out 2+ times in a row, to flag in red
       const sat = rounds.map(r => r.sitting.includes(p.id));
@@ -2149,18 +2123,26 @@ function buildSummaryHtml(session){
           streak = 0;
         }
       });
+      // main 2 round berturut-turut atau lebih -> hijau
+      const playIdx = new Array(rounds.length).fill(false);
+      let playStreak = 0;
+      sat.forEach((isSitting, i)=>{
+        if(!isSitting){
+          playStreak++;
+          if(playStreak>=2){ playIdx[i] = true; playIdx[i-1] = true; }
+        } else {
+          playStreak = 0;
+        }
+      });
 
-      const isFixedPlayer = session.fixedPairMap[p.id]!==undefined;
-      const nameCls = isFixedPlayer ? ' class="sticky-col fixed-name"' : ' class="sticky-col"';
-      html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td${nameCls}>${escapeHtml(p.name)}</td>`;
+      html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td class="sticky-col">${escapeHtml(p.name)}</td>`;
       cumulativeLog.forEach((snap,i)=>{
         const roundNum = i+1;
         const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
           && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
-        const repeatKey = repeatPlayersByRound[i].get(p.id);
         const classes = [];
         if(warnIdx[i]) classes.push('rest-warn');
-        else if(repeatKey!==undefined) classes.push('partner-repeat-warn', `repeat-color-${pairColorIndex[repeatKey]}`);
+        else if(playIdx[i]) classes.push('play-streak');
         if(isCheckpoint) classes.push('checkpoint-col');
         const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
         html += `<td${cls}>${snap[p.id]}</td>`;
@@ -2169,6 +2151,7 @@ function buildSummaryHtml(session){
     });
     html += `</tbody></table></div>
       <div class="info" style="margin-top:8px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#fecaca;border:1px solid #dc2626;vertical-align:-1px;"></span> Merah berurutan = menunggu 2 round</div>
+      <div class="info" style="margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#bbf7d0;border:1px solid #15803d;vertical-align:-1px;"></span> Hijau berurutan = main 2 round berturut-turut</div>
     </div>`;
   }
 
