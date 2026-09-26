@@ -2472,7 +2472,9 @@ async function shareSummary(){
   if(!CLOUD.loaded){ alert('Belum tersambung ke cloud. Tunggu badge "☁ Tersinkron" di kiri bawah, lalu coba lagi.'); return; }
   saveState();
   await pushChanges();
-  const url = location.origin + location.pathname + '?live=' + encodeURIComponent(id);
+  // Link yang dibagikan selalu pakai domain Firebase Hosting (bukan github.io)
+  const base = location.hostname.endsWith('github.io') ? 'https://mds-sulawesi.web.app/padel.html' : location.origin + location.pathname;
+  const url = base + '?live=' + encodeURIComponent(id);
   try{
     if(navigator.share){ await navigator.share({ title: activeSessionTitle() || 'Padel', url }); return; }
   }catch(e){ if(e && e.name === 'AbortError') return; }
