@@ -197,6 +197,11 @@
     flex:1; background:#f7f8fa; border-radius:14px; padding:10px 12px;
   }
   .team-col.fixed-team{ background:#dcfce7; }
+  .all-match-item.mine{ box-shadow:0 0 0 2px #facc15; background:#fffbeb; }
+  .player-row.me{ background:#fef3c7; border-radius:8px; }
+  .progress-table tr.my-row td{ border-top:2px solid #facc15 !important; border-bottom:2px solid #facc15 !important; }
+  .progress-table tr.my-row td:first-child{ border-left:2px solid #facc15 !important; }
+  .progress-table tr.my-row td:last-child{ border-right:2px solid #facc15 !important; }
   .team-col.winner{ position:relative; box-shadow:inset 0 0 0 2px #facc15; }
   .team-col .trophy{ position:absolute; top:6px; right:8px; font-size:13px; line-height:1; }
   .player-row{ display:flex; align-items:center; gap:10px; padding:6px 0; font-weight:600; font-size:15px; cursor:pointer; border-radius:8px; }
@@ -482,6 +487,7 @@
 const HISTORY_STORAGE_KEY = 'matchHistoryApp_v1';
 const VIEW_ID = new URLSearchParams(location.search).get('live'); // link "live" khusus baca
 const VIEW_ONLY = !!VIEW_ID;
+let HIGHLIGHT_PID = null; // di link live: id pemain yang ditandai kuning
 let db = { users: {}, history: {} };
 let currentUser = null;
 
@@ -940,6 +946,7 @@ function deletePadelSession(id, evt){
   if(evt) evt.stopPropagation();
   if(!confirm('Hapus sesi ini beserta seluruh jadwalnya?')) return;
   delete padelDb.sessions[id];
+  pendingSessionDeletes.add(id);
   if(padelDb.activeSessionId===id) padelDb.activeSessionId = null;
   savePadelDb();
   renderPadelSessionList();
@@ -2145,7 +2152,7 @@ function buildSummaryHtml(session){
 
       const isFixedPlayer = session.fixedPairMap[p.id]!==undefined;
       const nameCls = isFixedPlayer ? ' class="sticky-col fixed-name"' : ' class="sticky-col"';
-      html += `<tr><td${nameCls}>${escapeHtml(p.name)}</td>`;
+      html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td${nameCls}>${escapeHtml(p.name)}</td>`;
       cumulativeLog.forEach((snap,i)=>{
         const roundNum = i+1;
         const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
@@ -2179,8 +2186,10 @@ function buildSummaryHtml(session){
       const scored = !!sc && sc.A!==null && sc.B!==null;
       const winA = scored && sc.A > sc.B, winB = scored && sc.B > sc.A;
       const trophy = '<span class="trophy" title="Menang">🏆</span>';
+      const mine = HIGHLIGHT_PID !== null && teamA.concat(teamB).includes(HIGHLIGHT_PID);
+      const me = id => id === HIGHLIGHT_PID ? ' me' : '';
 
-      html += `<div class="all-match-item">
+      html += `<div class="all-match-item${mine ? ' mine' : ''}">
         <div class="all-match-tag">Round ${r+1} · Lapangan ${c+1}</div>
         <div class="score-row" style="padding:10px 0;">
           <div class="score-box compact-sm">${valA}</div>
@@ -2189,12 +2198,12 @@ function buildSummaryHtml(session){
         </div>
         <div class="teams-row" style="padding:0 0 10px;">
           <div class="team-col${isFixedTeam(teamA) ? ' fixed-team' : ''}${winA ? ' winner' : ''}">${winA ? trophy : ''}
-            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamA[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[0]))}</span></div>
-            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamA[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[1]))}</span></div>
+            <div class="player-row${me(teamA[0])}" onclick="openPlayerSwapModal(${r},${teamA[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[0]))}</span></div>
+            <div class="player-row${me(teamA[1])}" onclick="openPlayerSwapModal(${r},${teamA[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[1]))}</span></div>
           </div>
           <div class="team-col${isFixedTeam(teamB) ? ' fixed-team' : ''}${winB ? ' winner' : ''}">${winB ? trophy : ''}
-            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamB[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[0]))}</span></div>
-            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamB[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[1]))}</span></div>
+            <div class="player-row${me(teamB[0])}" onclick="openPlayerSwapModal(${r},${teamB[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[0]))}</span></div>
+            <div class="player-row${me(teamB[1])}" onclick="openPlayerSwapModal(${r},${teamB[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[1]))}</span></div>
           </div>
         </div>
       </div>`;
@@ -2287,6 +2296,9 @@ const CLOUD = { fs: null, db: null, loaded: false };
 const synced = { users: {}, history: {}, sessions: {} };
 let booted = false;
 let pushTimer = null;
+// Dokumen sesi di cloud HANYA dihapus kalau pengguna menekan tombol Hapus di sini —
+// bukan otomatis hanya karena sesinya tidak ada di memori halaman (mencegah data hilang).
+const pendingSessionDeletes = new Set();
 
 function setCloudStatus(text, ok){
   let el = document.getElementById('cloudBadge');
@@ -2450,11 +2462,10 @@ async function pushChanges(){
       ops.push(setDoc(doc(CLOUD.db, 'padel_sessions', sid), { json, title: st.title || '', createdAt: st.createdAt || '' }));
     }
   }
-  for(const sid of Object.keys(synced.sessions)){
-    if(!padelDb.sessions[sid]){
-      delete synced.sessions[sid];
-      ops.push(deleteDoc(doc(CLOUD.db, 'padel_sessions', sid)));
-    }
+  for(const sid of Array.from(pendingSessionDeletes)){
+    delete synced.sessions[sid];
+    pendingSessionDeletes.delete(sid);
+    ops.push(deleteDoc(doc(CLOUD.db, 'padel_sessions', sid)));
   }
   if(!ops.length) return;
   try{
@@ -2502,6 +2513,33 @@ async function shareSummary(){
   }
 }
 
+function viewerKey(){ return 'padelViewerAs_' + VIEW_ID; }
+function getViewerChoice(){ try{ return localStorage.getItem(viewerKey()); }catch(e){ return null; } }
+function setViewerChoice(v){ try{ localStorage.setItem(viewerKey(), String(v)); }catch(e){} }
+let viewerPicking = false;
+function pickViewer(v){ setViewerChoice(v); viewerPicking = false; renderViewerBody(); }
+function changeViewer(){ viewerPicking = true; renderViewerBody(); }
+function renderViewerBody(){
+  const body = document.getElementById('viewerBody');
+  if(!body || !currentSession) return;
+  const choice = getViewerChoice();
+  const p = players.find(x => String(x.id) === choice);
+  HIGHLIGHT_PID = p ? p.id : null;
+  let top = '';
+  if(choice === null || viewerPicking){
+    top = '<div class="card" style="margin-bottom:12px;"><div style="font-weight:800;margin-bottom:4px;">Kamu siapa di sesi ini?</div>'
+      + '<div class="info" style="margin-bottom:10px;">Pilih namamu supaya semua round kamu ditandai kuning. Pilihan disimpan di HP ini.</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:8px;">'
+      + players.map(pl => '<button class="btn secondary" onclick="pickViewer(\'' + pl.id + '\')">' + escapeHtml(pl.name) + '</button>').join('')
+      + '<button class="btn secondary" style="opacity:.7;" onclick="pickViewer(\'skip\')">Lewati</button></div></div>';
+  } else if(p){
+    top = '<div class="info" style="text-align:center;margin:0 0 10px;">Kamu: <b>' + escapeHtml(p.name) + '</b> · <span style="text-decoration:underline;cursor:pointer;" onclick="changeViewer()">ganti</span></div>';
+  } else {
+    top = '<div class="info" style="text-align:center;margin:0 0 10px;">Tidak memilih pemain · <span style="text-decoration:underline;cursor:pointer;" onclick="changeViewer()">pilih namamu</span></div>';
+  }
+  body.innerHTML = top + buildSummaryHtml(currentSession);
+}
+
 // Halaman baca-saja: ?live=<id sesi>. Tanpa login, tanpa menulis apa pun.
 async function bootViewer(){
   ['authPage', 'appPage', 'padelApp'].forEach(id => document.getElementById(id).classList.add('hidden'));
@@ -2521,7 +2559,7 @@ async function bootViewer(){
         padelDb.activeSessionId = VIEW_ID;
         loadSessionIntoMemory(VIEW_ID);
         if(!currentSession){ body.innerHTML = ''; status.textContent = 'Jadwal belum dibuat oleh pembuat sesi.'; return; }
-        body.innerHTML = buildSummaryHtml(currentSession);
+        renderViewerBody();
         status.textContent = '🔴 Live · update ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' · hanya baca';
       }catch(e){ console.error(e); status.textContent = 'Gagal menampilkan data sesi.'; }
     }, err => { console.error(err); status.textContent = 'Gagal memuat (' + (err.code || 'error') + ').'; });
