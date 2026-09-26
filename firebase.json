@@ -1,6 +1,10 @@
 {
   "hosting": {
+    "site": "padelku",
     "public": ".",
+    "redirects": [
+      { "source": "/", "destination": "/padel.html", "type": 302 }
+    ],
     "cleanUrls": false,
     "ignore": [
       "firebase.json",
