@@ -50,5 +50,8 @@ service cloud.firestore {
     match /tracker_expenses/{document=**} { allow read, write: if true; }
     match /tracker_debts/{document=**} { allow read, write: if true; }
     match /tracker_meta/{document=**} { allow read, write: if true; }
+    match /padel_users/{document=**} { allow read, write: if true; }
+    match /padel_history/{document=**} { allow read, write: if true; }
+    match /padel_sessions/{document=**} { allow read, write: if true; }
   }
 }

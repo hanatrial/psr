@@ -359,7 +359,7 @@
     <div class="field"><input type="password" id="regPasswordConfirm" placeholder="ulangi password"></div>
     <button class="btn" style="width:100%;" onclick="doRegister()">Daftar</button>
     <div class="error" id="registerError"></div>
-    <div class="note warn">⚠️ Ini masih versi awal (localStorage di HP kamu sendiri, belum ada server). Jangan pakai password yang sama persis dengan akun penting kamu yang lain.</div>
+    <div class="note warn">☁️ Akun & history disimpan online (Firestore), jadi bisa login dari HP mana saja. Tetap jangan pakai password yang sama persis dengan akun penting kamu yang lain.</div>
     <div class="link" onclick="showLogin()">Udah punya akun? Login</div>
   </div>
 </div>
@@ -435,7 +435,7 @@
   <button class="btn" id="genBtn" onclick="generate()">Buat Jadwal</button>
   <button class="btn secondary hidden" id="resumeBtn" onclick="showRoundPageOnly()">Kembali ke Jadwal</button>
 </div>
-<div class="info" style="margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="if(confirm('Hapus semua data tersimpan di perangkat ini?')) resetAllData();">Hapus semua data tersimpan</div>
+<div class="info" style="margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="if(confirm('Hapus cache lokal di perangkat ini? Data online tidak ikut terhapus.')) resetAllData();">Hapus cache lokal perangkat ini</div>
 <div class="error" id="errorMsg"></div>
 </div>
 
@@ -493,23 +493,24 @@ function loadDb(){
 }
 function saveDb(){
   try{ localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(db)); }catch(e){}
+  scheduleCloudPush();
 }
 
 // Auto-create the requested starter accounts the first time this app runs
 // on a device (only if they don't already exist — never overwrites).
-function seedDefaultAccounts(){
+async function seedDefaultAccounts(){
   const defaults = [
     { username: 'fahri', password: 'tes' },
     { username: 'steve', password: 'tes' }
   ];
   let changed = false;
-  defaults.forEach(({username, password})=>{
+  for(const {username, password} of defaults){
     if(!db.users[username]){
-      db.users[username] = { passwordHash: simpleHash(password) };
+      db.users[username] = { passwordHash: await hashPw(username, password) };
       db.history[username] = [];
       changed = true;
     }
-  });
+  }
   if(changed) saveDb();
 }
 
@@ -522,18 +523,19 @@ function showLogin(){
   document.getElementById('loginCard').classList.remove('hidden');
 }
 
-function doRegister(){
+async function doRegister(){
   const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value;
   const confirm = document.getElementById('regPasswordConfirm').value;
   const errorEl = document.getElementById('registerError');
   errorEl.textContent = '';
 
+  if(!booted){ errorEl.textContent = 'Lagi memuat data, coba lagi sebentar…'; return; }
   if(!username || !password){ errorEl.textContent = 'Username & password wajib diisi.'; return; }
   if(password !== confirm){ errorEl.textContent = 'Konfirmasi password gak cocok.'; return; }
   if(db.users[username]){ errorEl.textContent = 'Username udah dipakai, pilih yang lain.'; return; }
 
-  db.users[username] = { passwordHash: simpleHash(password) };
+  db.users[username] = { passwordHash: await hashPw(username, password) };
   db.history[username] = [];
   saveDb();
   currentUser = username;
@@ -541,16 +543,21 @@ function doRegister(){
   enterApp();
 }
 
-function doLogin(){
+async function doLogin(){
   const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
   const errorEl = document.getElementById('loginError');
   errorEl.textContent = '';
 
+  if(!booted){ errorEl.textContent = 'Lagi memuat data, coba lagi sebentar…'; return; }
   const user = db.users[username];
-  if(!user || user.passwordHash !== simpleHash(password)){
+  if(!(await passwordMatches(user, username, password))){
     errorEl.textContent = 'Username atau password salah.';
     return;
+  }
+  if(!String(user.passwordHash).startsWith('s2$')){
+    user.passwordHash = await hashPw(username, password);
+    saveDb();
   }
   currentUser = username;
   saveSession();
@@ -662,10 +669,6 @@ function renderHistory(){
   `).join('');
 }
 
-loadDb();
-seedDefaultAccounts();
-loadSession();
-if(currentUser){ enterApp(); }
 
 
 // ==================== PADEL SCHEDULER (digabung) ====================
@@ -807,6 +810,7 @@ function loadPadelDb(){
 }
 function savePadelDb(){
   try{ localStorage.setItem(PADEL_STORAGE_KEY, JSON.stringify(padelDb)); }catch(e){}
+  scheduleCloudPush();
 }
 
 function saveState(){
@@ -2165,9 +2169,6 @@ function buildSummaryHtml(session){
 
 
 
-loadPadelDb();
-renderPlayers();
-updateScoreFormatInfo();
 
 
 // ==================== INTEGRASI: Padel Scheduler -> Match History ====================
@@ -2226,6 +2227,218 @@ function syncPadelScoreToHistory(r, c){
   upsertForTeam(teamB, teamA, sc.B, sc.A);
   saveDb();
 }
+
+
+// ==================== CLOUD SYNC (Firestore) ====================
+// localStorage tetap dipakai sebagai cache/offline; Firestore jadi sumber utama
+// yang tersinkron antar perangkat. Tiap akun / history / sesi = 1 dokumen,
+// isinya disimpan sebagai string JSON (Firestore menolak array bersarang).
+const FB_APP = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+const FB_FS = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+const firebaseConfig = {
+  apiKey: "AIzaSyCA8Q8athqYIsY3By5wPxcU97GjDBR6DAs",
+  authDomain: "mds-sulawesi.firebaseapp.com",
+  projectId: "mds-sulawesi",
+  storageBucket: "mds-sulawesi.firebasestorage.app",
+  messagingSenderId: "511949021685",
+  appId: "1:511949021685:web:bc32007af0555449e7c0bc"
+};
+const CLOUD = { fs: null, db: null, loaded: false };
+const synced = { users: {}, history: {}, sessions: {} };
+let booted = false;
+let pushTimer = null;
+
+function setCloudStatus(text, ok){
+  let el = document.getElementById('cloudBadge');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'cloudBadge';
+    el.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:50;font-size:11px;padding:4px 10px;border-radius:20px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 1px 3px rgba(0,0,0,.08)';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.color = ok ? '#15803d' : '#b45309';
+}
+
+function docIdForUser(u){ return 'u_' + encodeURIComponent(u); }
+
+async function sha256Hex(s){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function hashPw(username, pw){
+  return 's2$' + await sha256Hex('padel-app|' + String(username).toLowerCase() + '|' + pw);
+}
+async function passwordMatches(user, username, pw){
+  if(!user || !user.passwordHash) return false;
+  if(String(user.passwordHash).startsWith('s2$')) return user.passwordHash === await hashPw(username, pw);
+  return user.passwordHash === simpleHash(pw); // akun lama (sebelum online)
+}
+
+function padelAppOpen(){
+  const el = document.getElementById('padelApp');
+  return !!el && !el.classList.contains('hidden');
+}
+
+function applyUsers(snap){
+  snap.forEach(d => {
+    const x = d.data();
+    if(!x || !x.username || !x.passwordHash) return;
+    db.users[x.username] = { passwordHash: x.passwordHash };
+    if(!db.history[x.username]) db.history[x.username] = [];
+    synced.users[d.id] = x.passwordHash;
+  });
+  try{ localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(db)); }catch(e){}
+}
+
+function applyHistory(snap){
+  snap.forEach(d => {
+    const x = d.data();
+    if(!x || !x.username || typeof x.json !== 'string') return;
+    try{
+      db.history[x.username] = JSON.parse(x.json);
+      synced.history[d.id] = x.json;
+    }catch(e){ /* dokumen rusak, abaikan */ }
+  });
+  try{ localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(db)); }catch(e){}
+  const appPage = document.getElementById('appPage');
+  if(currentUser && appPage && !appPage.classList.contains('hidden')) renderHistory();
+}
+
+function applySessions(snap){
+  // Sesi yang sedang dibuka di layar tidak ditimpa dari cloud (biar input yang
+  // sedang berjalan tidak hilang) — perubahan lokal nanti yang menang saat disimpan.
+  const openId = padelAppOpen() ? padelDb.activeSessionId : null;
+  snap.docChanges().forEach(ch => {
+    const id = ch.doc.id;
+    if(ch.type === 'removed'){
+      delete synced.sessions[id];
+      if(id !== openId){
+        delete padelDb.sessions[id];
+        if(padelDb.activeSessionId === id) padelDb.activeSessionId = null;
+      }
+      return;
+    }
+    if(id === openId) return;
+    const x = ch.doc.data();
+    if(!x || typeof x.json !== 'string') return;
+    try{
+      padelDb.sessions[id] = JSON.parse(x.json);
+      synced.sessions[id] = x.json;
+    }catch(e){ /* dokumen rusak, abaikan */ }
+  });
+  try{ localStorage.setItem(PADEL_STORAGE_KEY, JSON.stringify(padelDb)); }catch(e){}
+  renderPadelSessionList();
+}
+
+function subscribeCollection(name, handler){
+  return new Promise(resolve => {
+    let first = true;
+    CLOUD.fs.onSnapshot(CLOUD.fs.collection(CLOUD.db, name), snap => {
+      handler(snap);
+      if(first){ first = false; resolve(true); }
+    }, err => {
+      console.error('sync gagal', name, err);
+      setCloudStatus('Gagal sync (' + (err.code || 'error') + ') — pakai data lokal', false);
+      if(first){ first = false; resolve(false); }
+    });
+  });
+}
+
+async function initCloud(){
+  try{
+    const [appMod, fsMod] = await Promise.all([import(FB_APP), import(FB_FS)]);
+    CLOUD.fs = fsMod;
+    CLOUD.db = fsMod.getFirestore(appMod.initializeApp(firebaseConfig));
+    const timeout = new Promise(res => setTimeout(() => res('timeout'), 8000));
+    const all = Promise.all([
+      subscribeCollection('padel_users', applyUsers),
+      subscribeCollection('padel_history', applyHistory),
+      subscribeCollection('padel_sessions', applySessions)
+    ]);
+    const res = await Promise.race([all, timeout]);
+    if(res === 'timeout'){
+      setCloudStatus('Koneksi lambat — pakai data lokal dulu', false);
+      all.then(r => { if(r.every(Boolean)){ CLOUD.loaded = true; setCloudStatus('☁ Tersinkron', true); scheduleCloudPush(); } });
+    } else if(res.every(Boolean)){
+      CLOUD.loaded = true;
+      setCloudStatus('☁ Tersinkron', true);
+    }
+  }catch(e){
+    console.error('cloud init gagal', e);
+    setCloudStatus('Offline — pakai data lokal', false);
+  }
+}
+
+function scheduleCloudPush(){
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushChanges, 700);
+}
+
+async function pushChanges(){
+  if(!CLOUD.loaded) return;
+  const { doc, setDoc, deleteDoc } = CLOUD.fs;
+  const ops = [];
+  const isNewHash = u => db.users[u] && String(db.users[u].passwordHash || '').startsWith('s2$');
+
+  for(const [u, val] of Object.entries(db.users)){
+    // akun lama (hash lama) tidak diupload; baru naik ke cloud setelah pemiliknya login sekali
+    if(!isNewHash(u)) continue;
+    const id = docIdForUser(u);
+    if(synced.users[id] !== val.passwordHash){
+      synced.users[id] = val.passwordHash;
+      ops.push(setDoc(doc(CLOUD.db, 'padel_users', id), { username: u, passwordHash: val.passwordHash }));
+    }
+  }
+  for(const [u, arr] of Object.entries(db.history)){
+    if(!isNewHash(u)) continue;
+    const json = JSON.stringify(arr || []);
+    const id = docIdForUser(u);
+    if(synced.history[id] !== json){
+      synced.history[id] = json;
+      ops.push(setDoc(doc(CLOUD.db, 'padel_history', id), { username: u, json }));
+    }
+  }
+  for(const [sid, st] of Object.entries(padelDb.sessions)){
+    const json = JSON.stringify(st);
+    if(synced.sessions[sid] !== json){
+      if(json.length > 950000){ console.warn('sesi terlalu besar untuk cloud', sid); continue; }
+      synced.sessions[sid] = json;
+      ops.push(setDoc(doc(CLOUD.db, 'padel_sessions', sid), { json, title: st.title || '', createdAt: st.createdAt || '' }));
+    }
+  }
+  for(const sid of Object.keys(synced.sessions)){
+    if(!padelDb.sessions[sid]){
+      delete synced.sessions[sid];
+      ops.push(deleteDoc(doc(CLOUD.db, 'padel_sessions', sid)));
+    }
+  }
+  if(!ops.length) return;
+  try{
+    await Promise.all(ops);
+    setCloudStatus('☁ Tersinkron', true);
+  }catch(e){
+    console.error('gagal simpan ke cloud', e);
+    setCloudStatus('Gagal simpan ke cloud — dicoba lagi…', false);
+    synced.users = {}; synced.history = {}; synced.sessions = {};
+    setTimeout(pushChanges, 5000);
+  }
+}
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden') pushChanges(); });
+
+async function boot(){
+  loadDb();
+  loadPadelDb();
+  await initCloud();
+  await seedDefaultAccounts();
+  loadSession();
+  booted = true;
+  if(currentUser){ enterApp(); }
+  renderPlayers();
+  updateScoreFormatInfo();
+  if(CLOUD.loaded) pushChanges();
+}
+boot();
 
 </script>
 </body>
