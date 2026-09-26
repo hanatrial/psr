@@ -663,8 +663,17 @@ function resultLabel(r){
 function renderHistory(){
   const list = (db.history[currentUser] || []).slice().sort((a,b)=> b.id - a.id);
 
+  // Total pemain unik (tanpa beda huruf besar/kecil) dari semua sesi milik akun ini
+  const uniquePlayers = new Set();
+  Object.values(padelDb.sessions || {}).forEach(s => {
+    if(s && s.owner === currentUser) (s.players || []).forEach(p => {
+      const n = String(p.name || '').trim().toLowerCase();
+      if(n) uniquePlayers.add(n);
+    });
+  });
   document.getElementById('statsRow').innerHTML = `
-    <div class="stat-box" style="flex:none; width:100%;"><div class="num">${list.length}</div><div class="label">Total Match</div></div>
+    <div class="stat-box"><div class="num">${list.length}</div><div class="label">Total Match</div></div>
+    <div class="stat-box"><div class="num">${uniquePlayers.size}</div><div class="label">Total Player</div></div>
   `;
 
   const historyList = document.getElementById('historyList');
@@ -2349,6 +2358,8 @@ function applySessions(snap){
   });
   try{ localStorage.setItem(PADEL_STORAGE_KEY, JSON.stringify(padelDb)); }catch(e){}
   renderPadelSessionList();
+  const appPage = document.getElementById('appPage');
+  if(currentUser && appPage && !appPage.classList.contains('hidden')) renderHistory();
 }
 
 function subscribeCollection(name, handler){
