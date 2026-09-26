@@ -197,6 +197,8 @@
     flex:1; background:#f7f8fa; border-radius:14px; padding:10px 12px;
   }
   .team-col.fixed-team{ background:#dcfce7; }
+  .team-col.winner{ position:relative; box-shadow:inset 0 0 0 2px #facc15; }
+  .team-col .trophy{ position:absolute; top:6px; right:8px; font-size:13px; line-height:1; }
   .player-row{ display:flex; align-items:center; gap:10px; padding:6px 0; font-weight:600; font-size:15px; cursor:pointer; border-radius:8px; }
   .player-row:active{ background:var(--chip); }
   .player-row .avatar-circle{ width:26px; height:26px; }
@@ -2174,6 +2176,9 @@ function buildSummaryHtml(session){
       const sc = matchScores[`${r}_${c}`];
       const valA = sc && sc.A!==null ? String(sc.A).padStart(2,'0') : '00';
       const valB = sc && sc.B!==null ? String(sc.B).padStart(2,'0') : '00';
+      const scored = !!sc && sc.A!==null && sc.B!==null;
+      const winA = scored && sc.A > sc.B, winB = scored && sc.B > sc.A;
+      const trophy = '<span class="trophy" title="Menang">🏆</span>';
 
       html += `<div class="all-match-item">
         <div class="all-match-tag">Round ${r+1} · Lapangan ${c+1}</div>
@@ -2183,11 +2188,11 @@ function buildSummaryHtml(session){
           <div class="score-box compact-sm">${valB}</div>
         </div>
         <div class="teams-row" style="padding:0 0 10px;">
-          <div class="team-col${isFixedTeam(teamA) ? ' fixed-team' : ''}">
+          <div class="team-col${isFixedTeam(teamA) ? ' fixed-team' : ''}${winA ? ' winner' : ''}">${winA ? trophy : ''}
             <div class="player-row" onclick="openPlayerSwapModal(${r},${teamA[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[0]))}</span></div>
             <div class="player-row" onclick="openPlayerSwapModal(${r},${teamA[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[1]))}</span></div>
           </div>
-          <div class="team-col${isFixedTeam(teamB) ? ' fixed-team' : ''}">
+          <div class="team-col${isFixedTeam(teamB) ? ' fixed-team' : ''}${winB ? ' winner' : ''}">${winB ? trophy : ''}
             <div class="player-row" onclick="openPlayerSwapModal(${r},${teamB[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[0]))}</span></div>
             <div class="player-row" onclick="openPlayerSwapModal(${r},${teamB[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[1]))}</span></div>
           </div>
