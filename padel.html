@@ -584,6 +584,13 @@ function loadSession(){
 }
 
 function enterApp(){
+  // Sesi padel milik masing-masing akun. Sesi lama (dibuat sebelum ada pemilik)
+  // diklaim oleh akun yang pertama kali masuk di perangkat ini.
+  let claimed = false;
+  Object.values(padelDb.sessions).forEach(s => { if(s && !s.owner){ s.owner = currentUser; claimed = true; } });
+  const act = padelDb.sessions[padelDb.activeSessionId];
+  if(padelDb.activeSessionId && (!act || act.owner !== currentUser)) padelDb.activeSessionId = null;
+  if(claimed) savePadelDb();
   document.getElementById('authPage').classList.add('hidden');
   document.getElementById('appPage').classList.remove('hidden');
   document.getElementById('currentUsernameLabel').textContent = currentUser;
@@ -819,7 +826,7 @@ function saveState(){
     if(!id) return;
     const prev = padelDb.sessions[id] || {};
     const state = {
-      title: prev.title, createdAt: prev.createdAt,
+      title: prev.title, createdAt: prev.createdAt, owner: prev.owner,
       players, fixedPairs, nextId,
       courts: document.getElementById('courts').value,
       scoreFormat: document.getElementById('scoreFormat').value,
@@ -861,7 +868,7 @@ function loadSessionIntoMemory(id){
 function createNewPadelSession(title){
   const id = 'sess_' + Date.now();
   padelDb.sessions[id] = {
-    title, createdAt: new Date().toISOString(),
+    title, createdAt: new Date().toISOString(), owner: currentUser,
     players: [], fixedPairs: [], nextId: 1,
     courts: '1', scoreFormat: 'tennis5', totalHours: '',
     matchScores: {}, currentRoundIndex: 0, session: null, onRoundPage: false
@@ -909,7 +916,7 @@ function deletePadelSession(id, evt){
 function renderPadelSessionList(){
   const box = document.getElementById('padelSessionList');
   if(!box) return;
-  const ids = Object.keys(padelDb.sessions).sort((a,b)=> (padelDb.sessions[b].createdAt||'').localeCompare(padelDb.sessions[a].createdAt||''));
+  const ids = Object.keys(padelDb.sessions).filter(id => padelDb.sessions[id].owner === currentUser).sort((a,b)=> (padelDb.sessions[b].createdAt||'').localeCompare(padelDb.sessions[a].createdAt||''));
   if(ids.length===0){
     box.innerHTML = '<div class="empty-state">Belum ada sesi Padel Scheduler. Klik tombol di atas buat bikin yang pertama.</div>';
     return;
