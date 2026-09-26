@@ -666,7 +666,9 @@ function renderHistory(){
   // Total pemain unik (tanpa beda huruf besar/kecil) dari semua sesi milik akun ini
   const uniquePlayers = new Set();
   let totalPlayers = 0;
+  let totalSessions = 0;
   Object.values(padelDb.sessions || {}).forEach(s => {
+    if(s && s.owner === currentUser) totalSessions++;
     if(s && s.owner === currentUser) (s.players || []).forEach(p => {
       const n = String(p.name || '').trim().toLowerCase();
       if(!n) return;
@@ -675,6 +677,7 @@ function renderHistory(){
     });
   });
   document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box"><div class="num">${totalSessions}</div><div class="label">Total Match</div></div>
     <div class="stat-box"><div class="num">${totalPlayers}</div><div class="label">Total Pemain</div></div>
     <div class="stat-box"><div class="num">${uniquePlayers.size}</div><div class="label">Pemain Unik</div></div>
   `;
