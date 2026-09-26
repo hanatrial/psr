@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "padel-padel",
+    "site": "padelpadel",
     "public": ".",
     "redirects": [
       { "source": "/", "destination": "/padel.html", "type": 302 }
