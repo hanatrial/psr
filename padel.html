@@ -717,7 +717,7 @@ function renamePlayer(id){
 function renderPlayers(){
   const list = document.getElementById('playerList');
   list.innerHTML = players.map(p=>
-    `<span class="chip"><span onclick="renamePlayer(${p.id})" style="cursor:pointer; text-decoration:underline dotted;">${escapeHtml(p.name)}</span> <button onclick="removePlayer(${p.id})">✕</button></span>`
+    `<span class="chip"><span>${escapeHtml(p.name)}</span> <button onclick="removePlayer(${p.id})">✕</button></span>`
   ).join('') || '<span class="info">Belum ada pemain.</span>';
   document.getElementById('playerCountLabel').textContent = players.length>0 ? `(${players.length} orang)` : '';
 
@@ -2041,7 +2041,7 @@ function buildSummaryHtml(session){
       html += `<div class="board-row ${tier}">
         <span class="board-rank">${ordinal(i+1)}</span>
         ${avatarSvg()}
-        <span class="board-name">${escapeHtml(p.name)}</span>
+        <span class="board-name" onclick="renamePlayer(${p.id})" style="cursor:pointer; text-decoration:underline dotted;" title="Ketuk untuk ganti nama">${escapeHtml(p.name)}</span>
         <span class="board-wlt">${s.win}-${s.lose}-${s.draw}</span>
         <span class="board-diff">${diff>0?'+':''}${diff}</span>
         <span class="board-pts">${s.poin}</span>
