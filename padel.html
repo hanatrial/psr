@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Match History + Padel Scheduler</title>
+<style>
+
+  :root{
+    color-scheme: light;
+    --bg:#f7f6f3; --card:#ffffff; --text:#1a1d29; --muted:#6b7280;
+    --accent:#da7756; --accent2:#059669; --border:#eceef2; --chip:#fce8e0;
+    --danger:#dc2626;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px; max-width:520px; margin:0 auto; font-size:16px;
+  }
+  h1{font-size:21px; margin:4px 0 2px;}
+  p.sub{color:var(--muted); font-size:14px; margin:0 0 16px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:18px; margin-bottom:14px;
+  }
+  label{font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:6px;}
+  input[type=text], input[type=password], input[type=number], input[type=date], textarea{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--border);
+    background:#f7f8fa; color:var(--text); font-size:15px; outline:none; font-family:inherit;
+  }
+  .field{ margin-bottom:12px; }
+  .btn{
+    padding:11px 16px; border-radius:10px; border:none; font-size:15px; font-weight:700;
+    cursor:pointer; background:var(--accent); color:white;
+  }
+  .btn.secondary{ background:var(--chip); color:var(--text); }
+  .btn.danger{ background:#fee2e2; color:var(--danger); }
+  .btn.small{ padding:8px 12px; font-size:13px; width:auto; }
+  .btn-row{ display:flex; gap:8px; margin-top:6px; }
+  .btn-row .btn{ width:auto; flex:1; }
+  .link{ color:var(--accent); font-weight:600; cursor:pointer; text-decoration:underline; text-align:center; margin-top:12px; font-size:14px; }
+  .note{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5; }
+  .note.warn{ color:#92400e; background:#fef3c7; padding:8px 10px; border-radius:8px; margin-top:8px; }
+  .error{ color:var(--danger); font-size:13px; font-weight:600; margin-top:8px; min-height:0; }
+  .topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .topbar .user{ font-weight:700; font-size:15px; }
+  .topbar .user span{ color:var(--muted); font-weight:500; font-size:12px; display:block; }
+  .stats-row{ display:flex; gap:10px; margin-bottom:14px; }
+  .stat-box{ flex:1; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; text-align:center; }
+  .stat-box .num{ font-size:22px; font-weight:800; }
+  .stat-box .label{ font-size:11px; color:var(--muted); font-weight:600; }
+  .stat-box.win .num{ color:#15803d; }
+  .stat-box.lose .num{ color:var(--danger); }
+  .history-item{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:12px 14px; margin-bottom:10px;
+  }
+  .history-item .top{ display:flex; justify-content:space-between; align-items:center; }
+  .history-item .score{ font-size:20px; font-weight:800; }
+  .history-item .opponent{ font-size:14px; font-weight:600; margin-top:2px; }
+  .history-item .date{ font-size:12px; color:var(--muted); }
+  .chip{
+    display:inline-block; font-size:11px; font-weight:800; padding:3px 10px;
+    border-radius:999px;
+  }
+  .chip.win{ background:#dcfce7; color:#15803d; }
+  .chip.lose{ background:#fee2e2; color:var(--danger); }
+  .chip.draw{ background:#e5e7eb; color:#4b5563; }
+  .history-item .notes{ font-size:13px; color:var(--muted); margin-top:6px; }
+  .empty-state{ text-align:center; color:var(--muted); padding:30px 10px; font-size:14px; }
+  .hidden{ display:none; }
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:flex-end;
+    justify-content:center; z-index:999;
+  }
+  .modal-box{
+    background:var(--card); border-radius:18px 18px 0 0; padding:20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    width:100%; max-width:520px; max-height:88vh; overflow-y:auto;
+  }
+  .modal-title{ font-size:16px; font-weight:800; margin:0 0 14px; }
+  .row{ display:flex; gap:10px; }
+  .row > div{ flex:1; }
+
+
+/* ==================== PADEL SCHEDULER STYLES ==================== */
+
+  :root{
+    color-scheme: light;
+    --bg:#f7f6f3; --card:#ffffff; --text:#1a1d29; --muted:#6b7280;
+    --accent:#da7756; --accent2:#059669; --border:#eceef2; --chip:#fce8e0;
+    --danger:#dc2626; --rest:#fef3c7; --restText:#92400e;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px; max-width:720px; margin:0 auto; font-size:17px;
+  }
+  h1{font-size:23px; margin:4px 0 2px;}
+  p.sub{color:var(--muted); font-size:15px; margin:0 0 18px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:16px; margin-bottom:14px;
+  }
+  label{font-size:14px; font-weight:600; color:var(--muted); display:block; margin-bottom:6px;}
+  input[type=number], input[type=text]{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    background:#f7f8fa; color:var(--text); font-size:17px; outline:none;
+  }
+  input:focus{border-color:var(--accent);}
+  .row{display:flex; gap:10px;}
+  .row > div{flex:1;}
+  .btn{
+    padding:10px 14px; border-radius:10px; border:none; font-size:16px; font-weight:600;
+    cursor:pointer; background:var(--accent); color:white;
+  }
+  .btn.secondary{background:var(--chip); color:var(--text);}
+  .btn.danger{background:transparent; color:var(--danger); padding:4px 8px; font-size:16px;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .btn-row{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--chip);
+    padding:6px 10px; border-radius:999px; font-size:14px; margin:4px 4px 0 0;
+  }
+  .chip button{
+    border:none; background:none; color:var(--muted); cursor:pointer; font-size:14px; line-height:1;
+    padding:0;
+  }
+  .add-row{display:flex; gap:8px; margin-top:8px;}
+  .add-row input{flex:1;}
+  select{
+    width:100%; padding:10px; border-radius:10px; border:1px solid var(--border);
+    background:#f7f8fa; color:var(--text); font-size:16px;
+  }
+  .pair-row{display:flex; gap:8px; align-items:center; margin-top:8px;}
+  .pair-row select{flex:1;}
+  .info{font-size:13px; color:var(--muted); margin-top:6px;}
+  .error{color:var(--danger); font-size:14px; margin-top:8px; font-weight:600;}
+  .round{margin-bottom:16px;}
+  .round h3{font-size:16px; margin:0 0 8px; color:var(--accent);}
+  .court{
+    background:#f7f8fa; border:1px solid var(--border); border-radius:12px;
+    padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;
+    gap:10px; flex-wrap:wrap;
+  }
+  .court .label{font-size:13px; color:var(--muted); font-weight:700; min-width:58px;}
+  .team{font-size:15px; font-weight:600;}
+  .vs{color:var(--muted); font-size:13px; font-weight:700;}
+  .score-input{
+    width:44px; padding:6px; text-align:center; border-radius:8px; border:1px solid var(--border);
+    background:var(--card); color:var(--text); font-size:14px; font-weight:700;
+  }
+  .score-btn{
+    width:40px; height:36px; text-align:center; border-radius:10px; border:1px solid var(--border);
+    background:var(--card); color:var(--accent); font-size:15px; font-weight:800; cursor:pointer;
+  }
+  .score-btn.filled{ background:var(--accent); color:white; border-color:var(--accent); }
+
+  /* SKOR-style big match card */
+  .match-card{
+    background:var(--card); border:1px solid var(--border); border-radius:20px;
+    overflow:hidden; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04);
+  }
+  .court-header{
+    background:#2b2f3d; color:#fff; text-align:center; font-weight:800; font-size:19px;
+    padding:14px 16px;
+  }
+  .score-row{
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    padding:26px 16px 14px;
+  }
+  .score-box{
+    flex:1; max-width:150px; background:#f7f8fa; border:1px solid var(--border);
+    border-radius:16px; padding:22px 0; text-align:center; font-size:44px; font-weight:900;
+    cursor:pointer; color:var(--text); line-height:1;
+  }
+  .score-box.filled{ background:#fdece5; color:var(--accent); border-color:var(--accent); }
+  .vs-label{ font-size:19px; font-weight:800; color:var(--muted); }
+  .teams-row{ display:flex; gap:14px; padding:6px 16px 22px; }
+  .team-col{
+    flex:1; background:#f7f8fa; border-radius:14px; padding:10px 12px;
+  }
+  .team-col.fixed-team{ background:#dcfce7; }
+  .player-row{ display:flex; align-items:center; gap:10px; padding:6px 0; font-weight:600; font-size:15px; cursor:pointer; border-radius:8px; }
+  .player-row:active{ background:var(--chip); }
+  .player-row .avatar-circle{ width:26px; height:26px; }
+  .player-row .avatar-circle svg{ width:14px; height:14px; }
+
+  .match-card.compact .court-header{ font-size:16px; padding:10px 14px; }
+  .match-card.compact .score-row{ padding:16px 14px 8px; gap:12px; }
+  .match-card.compact .score-box{ padding:14px 0; font-size:30px; border-radius:12px; max-width:110px; }
+  .match-card.compact .teams-row{ padding:6px 14px 16px; gap:10px; }
+  .match-card.compact .player-row{ font-size:14px; padding:4px 0; }
+  .match-card.compact .player-row .avatar-circle{ width:22px; height:22px; }
+
+  .all-match-item{
+    border:1px solid var(--border); border-radius:16px; padding:14px 14px 12px;
+    margin-bottom:12px; text-align:center;
+  }
+  .all-match-title{ font-weight:800; font-size:16px; margin-bottom:2px; }
+  .score-box.compact-sm{ padding:14px 0; font-size:28px; border-radius:12px; max-width:100px; }
+  .all-match-tag{
+    display:inline-block; background:var(--chip); color:var(--text); font-weight:700;
+    font-size:13px; padding:4px 12px; border-radius:999px; margin-bottom:6px;
+  }
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:flex-end;
+    justify-content:center; z-index:999;
+  }
+  .modal-box{
+    background:var(--card); border-radius:18px 18px 0 0; padding:20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    width:100%; max-width:720px;
+  }
+  .modal-title{font-size:17px; font-weight:700; margin:0 0 14px; text-align:center;}
+  .modal-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; max-height:50vh; overflow-y:auto; padding-right:2px;}
+  .modal-grid button{
+    padding:16px 0; font-size:20px; font-weight:800; border-radius:12px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); cursor:pointer;
+  }
+  .modal-grid button:active{ background:var(--accent); color:white; }
+  .modal-cancel{
+    margin-top:12px; width:100%; padding:12px; border-radius:12px; border:none;
+    background:var(--chip); color:var(--muted); font-weight:600; font-size:14px; cursor:pointer;
+  }
+  .rest-box{
+    background:var(--rest); color:var(--restText); border-radius:10px; padding:8px 12px;
+    font-size:14px; font-weight:600;
+  }
+  .summary{margin-top:18px;}
+  .summary table{width:100%; border-collapse:collapse; font-size:13px;}
+  .summary th, .summary td{text-align:left; padding:6px 8px; border-bottom:1px solid var(--border);}
+  .summary th{color:var(--muted); font-weight:600;}
+  .hidden{display:none;}
+
+  /* SKOR-style ranking board */
+  .board{margin-top:18px;}
+  .board-title{font-size:26px; font-weight:800; margin:0 0 4px;}
+  .board-sub{display:flex; gap:16px; flex-wrap:wrap; color:var(--muted); font-weight:600; font-size:15px; margin-bottom:14px;}
+  .board-head{
+    background:var(--chip); border-radius:16px; padding:14px 16px; display:flex; align-items:center;
+    font-weight:800; font-size:16px; margin-bottom:10px; gap:10px;
+  }
+  .board-head .c-name{flex:2.2;}
+  .board-head .c-wlt{flex:1; text-align:center;}
+  .board-head .c-diff{flex:0.8; text-align:center;}
+  .board-head .c-pts{flex:1; text-align:right;}
+  .board-row{
+    display:flex; align-items:center; border-radius:16px; padding:12px 16px; margin-bottom:10px; gap:10px;
+  }
+  .board-row.tier-green{ background:#e7f6df; }
+  .board-row.tier-purple{ background:#e6e3fb; }
+  :root:not([data-theme="light"]) .board-row.tier-green,
+  :root[data-theme="dark"] .board-row.tier-green{ background:#1f3324; }
+  :root:not([data-theme="light"]) .board-row.tier-purple,
+  :root[data-theme="dark"] .board-row.tier-purple{ background:#2a2745; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .board-row.tier-green{ background:#1f3324; }
+    :root:not([data-theme="light"]) .board-row.tier-purple{ background:#2a2745; }
+  }
+  .board-rank{font-weight:800; font-size:16px; width:38px; flex-shrink:0; color:#1a1d29;}
+  :root:not([data-theme="light"]) .board-rank, :root[data-theme="dark"] .board-rank{color:#e8e9ed;}
+  .avatar-circle{
+    width:34px; height:34px; border-radius:50%; flex-shrink:0;
+    background:linear-gradient(160deg,#1e1b6e,#8b8ce8);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .avatar-circle svg{width:18px; height:18px;}
+  .board-name{flex:2.2; font-weight:700; font-size:16px; color:#1a1d29;}
+  :root:not([data-theme="light"]) .board-name, :root[data-theme="dark"] .board-name{color:#e8e9ed;}
+  .board-wlt{flex:1; text-align:center; font-weight:700; font-size:15px; color:#1a1d29;}
+  :root:not([data-theme="light"]) .board-wlt, :root[data-theme="dark"] .board-wlt{color:#e8e9ed;}
+  .board-diff{flex:0.8; text-align:center; font-weight:700; font-size:15px; color:#1a1d29;}
+  :root:not([data-theme="light"]) .board-diff, :root[data-theme="dark"] .board-diff{color:#e8e9ed;}
+  .board-pts{flex:1; text-align:right; font-weight:800; font-size:16px; color:#1a1d29;}
+  :root:not([data-theme="light"]) .board-pts, :root[data-theme="dark"] .board-pts{color:#e8e9ed;}
+  .board-pts .delta{font-weight:700; font-size:12px; color:var(--muted); margin-right:2px;}
+
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .progress-table{ border-collapse:collapse; font-size:13px; white-space:nowrap; }
+  .progress-table th, .progress-table td{
+    padding:6px 8px; text-align:center; border-bottom:1px solid var(--border);
+  }
+  .progress-table th{ color:var(--muted); font-weight:700; }
+  .progress-table .sticky-col{
+    position:sticky; left:0; background:var(--card); text-align:left; font-weight:600;
+    box-shadow:1px 0 0 var(--border);
+  }
+  .progress-table td.rest-warn{
+    color:#dc2626; font-weight:800; background:#fee2e2;
+  }
+  .progress-table td.partner-repeat-warn{
+    color:#92400e; font-weight:800; background:#fef3c7;
+  }
+  .progress-table td.repeat-color-0{ background:#fef3c7; color:#92400e; }
+  .progress-table td.repeat-color-1{ background:#dbeafe; color:#1e40af; }
+  .progress-table td.repeat-color-2{ background:#fce7f3; color:#9d174d; }
+  .progress-table td.repeat-color-3{ background:#ede9fe; color:#5b21b6; }
+  .progress-table td.repeat-color-4{ background:#d1fae5; color:#065f46; }
+  .progress-table td.repeat-color-5{ background:#ffedd5; color:#9a3412; }
+  .progress-table td.repeat-color-6{ background:#e0f2fe; color:#075985; }
+  .progress-table td.repeat-color-7{ background:#fee2e2; color:#991b1b; }
+  .progress-table .sticky-col.fixed-name{
+    color:#15803d; background:#dcfce7;
+  }
+  .progress-table th.checkpoint-col{
+    background:var(--chip); border-left:2px solid var(--accent); border-right:2px solid var(--accent);
+  }
+  .progress-table .checkpoint-tag{
+    font-size:10px; font-weight:700; color:var(--accent);
+  }
+  .progress-table td.checkpoint-col{
+    border-left:2px solid var(--accent); border-right:2px solid var(--accent);
+  }
+
+  /* Fix from merging the two apps: the Match History app's .btn defaults to
+     width:100% (fine for its own full-width Login/Register buttons), but
+     that leaked into the Padel Scheduler's inline row buttons ("Tambah",
+     "Kunci", prev/next round arrows), squeezing their neighboring elements
+     down. Removed the blanket width:100% from .btn below — each button
+     that actually wants full width gets it via an explicit style instead. */
+
+</style>
+</head>
+<body>
+
+
+<div id="authPage">
+  <h1>🎾 Match History</h1>
+  <p class="sub">Login dulu buat mulai nyatet history match kamu.</p>
+
+  <div class="card" id="loginCard">
+    <label>Username</label>
+    <div class="field"><input type="text" id="loginUsername" placeholder="username kamu"></div>
+    <label>Password</label>
+    <div class="field"><input type="password" id="loginPassword" placeholder="password"></div>
+    <button class="btn" style="width:100%;" onclick="doLogin()">Login</button>
+    <div class="error" id="loginError"></div>
+    <div class="link" onclick="showRegister()">Belum punya akun? Daftar</div>
+  </div>
+
+  <div class="card hidden" id="registerCard">
+    <label>Username</label>
+    <div class="field"><input type="text" id="regUsername" placeholder="pilih username"></div>
+    <label>Password</label>
+    <div class="field">
+      <input type="password" id="regPassword" placeholder="pilih password">
+      <div class="note">Boleh sesimpel apapun — tapi jangan pakai password yang sama persis dengan aplikasi/akun lain kamu ya.</div>
+    </div>
+    <label>Konfirmasi Password</label>
+    <div class="field"><input type="password" id="regPasswordConfirm" placeholder="ulangi password"></div>
+    <button class="btn" style="width:100%;" onclick="doRegister()">Daftar</button>
+    <div class="error" id="registerError"></div>
+    <div class="note warn">⚠️ Ini masih versi awal (localStorage di HP kamu sendiri, belum ada server). Jangan pakai password yang sama persis dengan akun penting kamu yang lain.</div>
+    <div class="link" onclick="showLogin()">Udah punya akun? Login</div>
+  </div>
+</div>
+
+<div id="appPage" class="hidden">
+  <div class="topbar">
+    <div class="user">👤 <span id="currentUsernameLabel"></span><span>Match History</span></div>
+    <button class="btn secondary small" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <button class="btn" onclick="promptSessionTitle()" style="margin-bottom:14px; width:100%;">🎾 Catat Match Baru (Padel Scheduler)</button>
+
+  <label style="font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:8px;">Sesi Padel Scheduler</label>
+  <div id="padelSessionList" style="margin-bottom:18px;"></div>
+
+  <label style="font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:8px;">History Match</label>
+  <div id="historyList"></div>
+</div>
+
+<div id="padelApp" class="hidden">
+
+<div id="pageSetup">
+<div class="link" onclick="closePadelApp()" style="text-align:left; margin-bottom:8px;">← Kembali ke History</div>
+<h1>🎾 Padel Round Scheduler</h1>
+<p id="padelSessionTitleLabel" style="font-weight:700; color:var(--accent); margin:0 0 6px;"></p>
+<p class="sub">Atur lapangan, pemain, dan partner tetap (opsional) — jadwal round otomatis dibuat adil.</p>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Jumlah Lapangan</label>
+      <input type="number" id="courts" min="1" value="1">
+    </div>
+    <div>
+      <label>Total Jam Sewa (jam)</label>
+      <input type="number" id="totalHours" min="0" step="0.5" placeholder="cth. 2" oninput="saveState();">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <label>Daftar Pemain <span id="playerCountLabel" style="color:var(--muted); font-weight:600;"></span></label>
+  <div class="add-row">
+    <input type="text" id="playerName" placeholder="Nama pemain" onkeydown="if(event.key==='Enter'){addPlayer();}">
+    <button class="btn" onclick="addPlayer()">Tambah</button>
+  </div>
+  <div id="playerList" style="margin-top:10px;"></div>
+</div>
+
+<div class="card">
+  <label>Partner Tetap (opsional) <span id="fixedPairCountLabel" style="color:var(--muted); font-weight:600;"></span></label>
+  <div class="pair-row">
+    <select id="pairA"></select>
+    <span class="vs">&</span>
+    <select id="pairB"></select>
+    <button class="btn secondary" onclick="addFixedPair()">Kunci</button>
+  </div>
+  <div id="fixedPairList" style="margin-top:10px;"></div>
+</div>
+
+<div class="card">
+  <label>Format Skor</label>
+  <select id="scoreFormat" onchange="onScoreFormatChange();">
+    <option value="tennis5">Tennis — Total 5</option>
+    <option value="tennis4">Tennis — Total 4</option>
+    <option value="americano21">Americano — Total 21</option>
+  </select>
+</div>
+
+<div class="btn-row">
+  <button class="btn" id="genBtn" onclick="generate()">Buat Jadwal</button>
+  <button class="btn secondary hidden" id="resumeBtn" onclick="showRoundPageOnly()">Kembali ke Jadwal</button>
+</div>
+<div class="info" style="margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="if(confirm('Hapus semua data tersimpan di perangkat ini?')) resetAllData();">Hapus semua data tersimpan</div>
+<div class="error" id="errorMsg"></div>
+</div>
+
+<div id="pageRound" class="hidden">
+  <div id="padelSessionTitleLabel2" style="font-weight:700; color:var(--accent); margin-bottom:6px;"></div>
+  <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+    <button class="btn secondary" onclick="prevRound()">‹</button>
+    <div style="text-align:center; flex:1;">
+      <div style="font-weight:800; font-size:16px;" id="roundIndicator">Round 1 / 1</div>
+      <div class="info" style="margin-top:2px; cursor:pointer; text-decoration:underline;" onclick="backToSetup()">Ubah setup</div>
+      <div class="info" style="margin-top:2px; cursor:pointer; text-decoration:underline;" onclick="closePadelApp()">← Kembali ke History</div>
+    </div>
+    <button class="btn secondary" onclick="nextRound()">›</button>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn secondary" id="summaryToggleBtn" onclick="toggleSummary()">📊 Lihat Summary</button>
+  </div>
+  <div id="summaryPanel" class="hidden"></div>
+
+  <div id="roundContent"></div>
+</div>
+
+<div id="padelModalRoot"></div>
+
+</div>
+
+<div id="modalRoot"></div>
+
+
+<script>
+
+const HISTORY_STORAGE_KEY = 'matchHistoryApp_v1';
+let db = { users: {}, history: {} };
+let currentUser = null;
+
+// --- very simple obfuscation, NOT real cryptographic security ---
+// this is a localStorage-only prototype (per the user's own request) —
+// once this goes online with a real backend, passwords need to be hashed
+// properly server-side (e.g. bcrypt/argon2), never like this.
+function simpleHash(str){
+  let hash = 0;
+  for(let i=0;i<str.length;i++){
+    hash = ((hash<<5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return 'h' + hash;
+}
+
+function loadDb(){
+  try{
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if(raw){ db = JSON.parse(raw); }
+  }catch(e){ /* ignore */ }
+}
+function saveDb(){
+  try{ localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(db)); }catch(e){}
+}
+
+// Auto-create the requested starter accounts the first time this app runs
+// on a device (only if they don't already exist — never overwrites).
+function seedDefaultAccounts(){
+  const defaults = [
+    { username: 'fahri', password: 'tes' },
+    { username: 'steve', password: 'tes' }
+  ];
+  let changed = false;
+  defaults.forEach(({username, password})=>{
+    if(!db.users[username]){
+      db.users[username] = { passwordHash: simpleHash(password) };
+      db.history[username] = [];
+      changed = true;
+    }
+  });
+  if(changed) saveDb();
+}
+
+function showRegister(){
+  document.getElementById('loginCard').classList.add('hidden');
+  document.getElementById('registerCard').classList.remove('hidden');
+}
+function showLogin(){
+  document.getElementById('registerCard').classList.add('hidden');
+  document.getElementById('loginCard').classList.remove('hidden');
+}
+
+function doRegister(){
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirm = document.getElementById('regPasswordConfirm').value;
+  const errorEl = document.getElementById('registerError');
+  errorEl.textContent = '';
+
+  if(!username || !password){ errorEl.textContent = 'Username & password wajib diisi.'; return; }
+  if(password !== confirm){ errorEl.textContent = 'Konfirmasi password gak cocok.'; return; }
+  if(db.users[username]){ errorEl.textContent = 'Username udah dipakai, pilih yang lain.'; return; }
+
+  db.users[username] = { passwordHash: simpleHash(password) };
+  db.history[username] = [];
+  saveDb();
+  currentUser = username;
+  saveSession();
+  enterApp();
+}
+
+function doLogin(){
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+
+  const user = db.users[username];
+  if(!user || user.passwordHash !== simpleHash(password)){
+    errorEl.textContent = 'Username atau password salah.';
+    return;
+  }
+  currentUser = username;
+  saveSession();
+  enterApp();
+}
+
+function doLogout(){
+  currentUser = null;
+  saveSession();
+  document.getElementById('appPage').classList.add('hidden');
+  document.getElementById('authPage').classList.remove('hidden');
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+function saveSession(){
+  try{ localStorage.setItem(HISTORY_STORAGE_KEY + '_session', currentUser || ''); }catch(e){}
+}
+function loadSession(){
+  try{
+    const u = localStorage.getItem(HISTORY_STORAGE_KEY + '_session');
+    if(u && db.users[u]) currentUser = u;
+  }catch(e){}
+}
+
+function enterApp(){
+  document.getElementById('authPage').classList.add('hidden');
+  document.getElementById('appPage').classList.remove('hidden');
+  document.getElementById('currentUsernameLabel').textContent = currentUser;
+  renderHistory();
+  renderPadelSessionList();
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+let pendingSessionTitle = '';
+function activeSessionTitle(){ const s = padelDb.sessions[padelDb.activeSessionId]; return s ? (s.title||'') : ''; }
+
+function promptSessionTitle(){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-box">
+        <p class="modal-title">Sesi main ini judulnya apa?</p>
+        <div class="field">
+          <input type="text" id="sessionTitleInput" placeholder="cth. Main Sabtu Sore, Turnamen Kompleks" value="${escapeHtml(pendingSessionTitle)}">
+        </div>
+        <button class="btn" style="width:100%;" onclick="confirmSessionTitle()">Lanjut</button>
+        <button class="btn secondary" style="margin-top:8px; width:100%;" onclick="closeModal()">Batal</button>
+      </div>
+    </div>
+  `;
+  setTimeout(()=>{ const el = document.getElementById('sessionTitleInput'); if(el) el.focus(); }, 50);
+}
+
+function confirmSessionTitle(){
+  const val = document.getElementById('sessionTitleInput').value.trim();
+  if(!val){ alert('Isi judul sesinya dulu.'); return; }
+  pendingSessionTitle = val;
+  closeModal();
+  createNewPadelSession(val);
+  openPadelApp();
+}
+
+function deleteMatch(id){
+  if(!confirm('Hapus history match ini?')) return;
+  db.history[currentUser] = db.history[currentUser].filter(m=>m.id!==id);
+  saveDb();
+  renderHistory();
+}
+
+function resultLabel(r){
+  if(r==='win') return 'Menang';
+  if(r==='lose') return 'Kalah';
+  return 'Seri';
+}
+
+function renderHistory(){
+  const list = (db.history[currentUser] || []).slice().sort((a,b)=> b.id - a.id);
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box" style="flex:none; width:100%;"><div class="num">${list.length}</div><div class="label">Total Match</div></div>
+  `;
+
+  const historyList = document.getElementById('historyList');
+  if(list.length===0){
+    historyList.innerHTML = '<div class="empty-state">Belum ada history match. Klik "Catat Match Baru" buat mulai.</div>';
+    return;
+  }
+  historyList.innerHTML = list.map(m => `
+    <div class="history-item">
+      <div class="top">
+        <div>
+          <div class="score">${m.scoreUs} - ${m.scoreThem}</div>
+          <div class="opponent">vs ${escapeHtml(m.opponent)}</div>
+        </div>
+        <span class="chip ${m.result}">${resultLabel(m.result)}</span>
+      </div>
+      <div class="date">${m.date}</div>
+      ${m.notes ? `<div class="notes">${escapeHtml(m.notes)}</div>` : ''}
+      <button class="btn danger small" style="margin-top:8px;" onclick="deleteMatch(${m.id})">Hapus</button>
+    </div>
+  `).join('');
+}
+
+loadDb();
+seedDefaultAccounts();
+loadSession();
+if(currentUser){ enterApp(); }
+
+
+// ==================== PADEL SCHEDULER (digabung) ====================
+
+let players = []; // {id, name}
+let fixedPairs = []; // [idA, idB]
+let nextId = 1;
+
+function addPlayer(){
+  const input = document.getElementById('playerName');
+  const name = input.value.trim();
+  if(!name) return;
+  players.push({id: nextId++, name});
+  input.value = '';
+  renderPlayers();
+  saveState();
+}
+
+function removePlayer(id){
+  players = players.filter(p=>p.id!==id);
+  fixedPairs = fixedPairs.filter(pair=>pair[0]!==id && pair[1]!==id);
+  renderPlayers();
+  saveState();
+}
+
+// Renames a player in place — only the display name changes, the id stays
+// the same, so it takes effect everywhere automatically (already-generated
+// rounds, summary, history sync-by-name) without touching any schedule
+// data at all.
+function renamePlayer(id){
+  const player = players.find(p=>p.id===id);
+  if(!player) return;
+  const newName = prompt('Ganti nama jadi apa?', player.name);
+  if(newName===null) return; // cancelled
+  const trimmed = newName.trim();
+  if(!trimmed) return;
+  player.name = trimmed;
+  renderPlayers();
+  if(currentSession){
+    if(!document.getElementById('pageRound').classList.contains('hidden')) renderRoundPage();
+    if(summaryVisible) document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
+  }
+  saveState();
+}
+
+function renderPlayers(){
+  const list = document.getElementById('playerList');
+  list.innerHTML = players.map(p=>
+    `<span class="chip"><span onclick="renamePlayer(${p.id})" style="cursor:pointer; text-decoration:underline dotted;">${escapeHtml(p.name)}</span> <button onclick="removePlayer(${p.id})">✕</button></span>`
+  ).join('') || '<span class="info">Belum ada pemain.</span>';
+  document.getElementById('playerCountLabel').textContent = players.length>0 ? `(${players.length} orang)` : '';
+
+  const selA = document.getElementById('pairA');
+  const selB = document.getElementById('pairB');
+  const options = players.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  selA.innerHTML = options;
+  selB.innerHTML = options;
+  renderFixedPairs();
+  updateCapacityInfo();
+}
+
+function addFixedPair(){
+  const a = parseInt(document.getElementById('pairA').value);
+  const b = parseInt(document.getElementById('pairB').value);
+  if(!a || !b || a===b) return;
+  const already = fixedPairs.some(pair=> pair.includes(a) || pair.includes(b));
+  if(already){
+    alert('Salah satu pemain sudah punya partner tetap.');
+    return;
+  }
+  fixedPairs.push([a,b]);
+  renderFixedPairs();
+  updateCapacityInfo();
+  saveState();
+}
+
+function removeFixedPair(idx){
+  fixedPairs.splice(idx,1);
+  renderFixedPairs();
+  updateCapacityInfo();
+  saveState();
+}
+
+function renderFixedPairs(){
+  const box = document.getElementById('fixedPairList');
+  box.innerHTML = fixedPairs.map((pair, idx)=>{
+    const a = players.find(p=>p.id===pair[0]);
+    const b = players.find(p=>p.id===pair[1]);
+    if(!a||!b) return '';
+    return `<span class="chip">${escapeHtml(a.name)} & ${escapeHtml(b.name)} <button onclick="removeFixedPair(${idx})">✕</button></span>`;
+  }).join('') || '<span class="info">Belum ada partner tetap.</span>';
+  document.getElementById('fixedPairCountLabel').textContent = fixedPairs.length>0 ? `(${fixedPairs.length} pasang)` : '';
+}
+
+function updateCapacityInfo(){
+  // (info text removed per user preference — kept as a no-op so existing
+  // callers/listeners don't need to change)
+}
+
+document.getElementById('courts').addEventListener('input', ()=>{ saveState(); });
+
+// ---- Persistence (per-device, browser localStorage) ----
+const PADEL_STORAGE_KEY = 'padelSchedulerState_v1';
+
+function serializeSession(s){
+  return {
+    courtsCount: s.courtsCount, perRoundPlaying: s.perRoundPlaying,
+    gamesPlayed: s.gamesPlayed, restStreak: s.restStreak,
+    partnerCount: s.partnerCount, opponentCount: s.opponentCount,
+    fixedPairMap: s.fixedPairMap, freeIds: s.freeIds,
+    requiredPairs: Array.from(s.requiredPairs),
+    coveredPairs: Array.from(s.coveredPairs),
+    fixedClashPairs: Array.from(s.fixedClashPairs || []),
+    plannedTotalRounds: s.plannedTotalRounds,
+    roundsPerHour: s.roundsPerHour,
+    totalHours: s.totalHours,
+    rounds: s.rounds, cumulativeLog: s.cumulativeLog, roundMode: s.roundMode
+  };
+}
+
+function deserializeSession(o){
+  return {
+    ...o,
+    requiredPairs: new Set(o.requiredPairs || []),
+    coveredPairs: new Set(o.coveredPairs || []),
+    fixedClashPairs: new Set(o.fixedClashPairs || [])
+  };
+}
+
+let padelDb = { sessions: {}, activeSessionId: null };
+
+function loadPadelDb(){
+  try{
+    const raw = localStorage.getItem(PADEL_STORAGE_KEY);
+    if(raw) padelDb = JSON.parse(raw);
+  }catch(e){ /* ignore */ }
+  if(!padelDb || typeof padelDb!=='object') padelDb = { sessions:{}, activeSessionId:null };
+  if(!padelDb.sessions) padelDb.sessions = {};
+}
+function savePadelDb(){
+  try{ localStorage.setItem(PADEL_STORAGE_KEY, JSON.stringify(padelDb)); }catch(e){}
+}
+
+function saveState(){
+  try{
+    const id = padelDb.activeSessionId;
+    if(!id) return;
+    const prev = padelDb.sessions[id] || {};
+    const state = {
+      title: prev.title, createdAt: prev.createdAt,
+      players, fixedPairs, nextId,
+      courts: document.getElementById('courts').value,
+      scoreFormat: document.getElementById('scoreFormat').value,
+      totalHours: document.getElementById('totalHours').value,
+      matchScores, currentRoundIndex,
+      session: currentSession ? serializeSession(currentSession) : null,
+      onRoundPage: currentSession ? !document.getElementById('pageRound').classList.contains('hidden') : false
+    };
+    padelDb.sessions[id] = state;
+    savePadelDb();
+  }catch(e){ /* storage unavailable — app still works, just won't persist */ }
+}
+
+// Loads one session's saved data into the working (in-memory) variables.
+// Returns whether that session was last left on the round page.
+function loadSessionIntoMemory(id){
+  const state = padelDb.sessions[id];
+  if(!state) return false;
+  players = state.players || [];
+  fixedPairs = state.fixedPairs || [];
+  nextId = state.nextId || 1;
+  document.getElementById('courts').value = state.courts || '1';
+  document.getElementById('scoreFormat').value = state.scoreFormat || 'tennis5';
+  document.getElementById('totalHours').value = state.totalHours || '';
+  matchScores = state.matchScores || {};
+  currentRoundIndex = state.currentRoundIndex || 0;
+  if(state.session){
+    currentSession = deserializeSession(state.session);
+    document.getElementById('resumeBtn').classList.remove('hidden');
+    if(currentRoundIndex >= currentSession.rounds.length) currentRoundIndex = 0;
+  } else {
+    currentSession = null;
+    document.getElementById('resumeBtn').classList.add('hidden');
+  }
+  return !!state.onRoundPage;
+}
+
+// Starts a brand new named Padel session and makes it the active one.
+function createNewPadelSession(title){
+  const id = 'sess_' + Date.now();
+  padelDb.sessions[id] = {
+    title, createdAt: new Date().toISOString(),
+    players: [], fixedPairs: [], nextId: 1,
+    courts: '1', scoreFormat: 'tennis5', totalHours: '',
+    matchScores: {}, currentRoundIndex: 0, session: null, onRoundPage: false
+  };
+  padelDb.activeSessionId = id;
+  savePadelDb();
+
+  players = []; fixedPairs = []; nextId = 1; matchScores = {}; currentRoundIndex = 0; currentSession = null;
+  document.getElementById('courts').value = '1';
+  document.getElementById('scoreFormat').value = 'tennis5';
+  document.getElementById('totalHours').value = '';
+  document.getElementById('resumeBtn').classList.add('hidden');
+  renderPlayers();
+  updateScoreFormatInfo();
+  backToSetup();
+}
+
+// Opens a previously-created session (resumes wherever it was left).
+function openExistingPadelSession(id){
+  padelDb.activeSessionId = id;
+  const wasOnRoundPage = loadSessionIntoMemory(id);
+  renderPlayers();
+  updateScoreFormatInfo();
+  if(wasOnRoundPage && currentSession){
+    showRoundPageOnly();
+    if(summaryVisible){
+      document.getElementById('summaryPanel').classList.remove('hidden');
+      document.getElementById('summaryToggleBtn').textContent = '✕ Tutup Summary';
+      document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
+    }
+  } else {
+    backToSetup();
+  }
+}
+
+function deletePadelSession(id, evt){
+  if(evt) evt.stopPropagation();
+  if(!confirm('Hapus sesi ini beserta seluruh jadwalnya?')) return;
+  delete padelDb.sessions[id];
+  if(padelDb.activeSessionId===id) padelDb.activeSessionId = null;
+  savePadelDb();
+  renderPadelSessionList();
+}
+
+function renderPadelSessionList(){
+  const box = document.getElementById('padelSessionList');
+  if(!box) return;
+  const ids = Object.keys(padelDb.sessions).sort((a,b)=> (padelDb.sessions[b].createdAt||'').localeCompare(padelDb.sessions[a].createdAt||''));
+  if(ids.length===0){
+    box.innerHTML = '<div class="empty-state">Belum ada sesi Padel Scheduler. Klik tombol di atas buat bikin yang pertama.</div>';
+    return;
+  }
+  box.innerHTML = ids.map(id=>{
+    const s = padelDb.sessions[id];
+    const roundInfo = s.session ? `${(s.session.rounds||[]).length} round dibuat` : 'belum di-generate';
+    return `<div class="history-item" style="cursor:pointer;" onclick="openExistingPadelSession('${id}'); openPadelApp();">
+      <div class="top">
+        <div>
+          <div class="opponent" style="font-size:16px;">📋 ${escapeHtml(s.title||'(tanpa judul)')}</div>
+          <div class="date">${escapeHtml(roundInfo)} · ${(s.players||[]).length} pemain</div>
+        </div>
+        <button class="btn danger small" onclick="deletePadelSession('${id}', event)">Hapus</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function resetAllData(){
+  try{ localStorage.removeItem(PADEL_STORAGE_KEY); }catch(e){}
+  location.reload();
+}
+
+
+
+function getScoreTarget(){
+  const fmt = document.getElementById('scoreFormat').value;
+  if(fmt==='tennis4') return {label:'Main sampai 4 game', target:4};
+  if(fmt==='americano21') return {label:'Total poin dibagi 2 tim = 21', target:21};
+  return {label:'Main sampai 5 game', target:5};
+}
+
+// Rough default match duration per format, used to estimate how many
+// rounds actually fit in a given amount of court time.
+function defaultDurationFor(fmt){
+  if(fmt==='tennis4') return 8;
+  if(fmt==='americano21') return 10;
+  return 10; // tennis total 5
+}
+function currentMatchDuration(){
+  return defaultDurationFor(document.getElementById('scoreFormat').value);
+}
+
+function onScoreFormatChange(){
+  updateScoreFormatInfo();
+  saveState();
+}
+
+function updateScoreFormatInfo(){
+  // (info text removed per user preference — kept as a no-op so existing
+  // callers don't need to change)
+}
+updateScoreFormatInfo();
+
+function pairKey(a,b){ return a<b ? a+'_'+b : b+'_'+a; }
+
+function generateMatchings(ids){
+  if(ids.length===0) return [[]];
+  const first = ids[0];
+  const rest = ids.slice(1);
+  const results = [];
+  for(let i=0;i<rest.length;i++){
+    const partner = rest[i];
+    const remaining = rest.slice(0,i).concat(rest.slice(i+1));
+    generateMatchings(remaining).forEach(sub=>{
+      results.push([[first,partner], ...sub]);
+    });
+  }
+  return results;
+}
+
+// The recursive shape of generateMatchings only depends on the *count* of
+// items, not their identity — cache that shape (as indices) once per size
+// and just remap indices to real ids on each call, instead of re-running the
+// recursion every time (this is what made things slow once coverage got
+// dense and callers started hammering it every round).
+const _matchingTemplateCache = {};
+function matchingTemplate(n){
+  if(!_matchingTemplateCache[n]){
+    const idx = Array.from({length:n}, (_,i)=>i);
+    _matchingTemplateCache[n] = generateMatchings(idx);
+  }
+  return _matchingTemplateCache[n];
+}
+function generateMatchingsFast(ids){
+  const template = matchingTemplate(ids.length);
+  return template.map(m => m.map(([i,j]) => [ids[i], ids[j]]));
+}
+
+// Finds the split of `singleIds` into 2-player teams that covers the most
+// still-needed partner pairs this round (auto mode) while minimizing repeat
+// partnerships. Exhaustive for small groups (<=12), falls back to a fast
+// greedy for larger ones.
+function bestMatchingForSingles(singleIds, partnerCount, requiredPairs, coveredPairs, preferCoverage){
+  if(singleIds.length===0) return [];
+  if(singleIds.length%2!==0){
+    // shouldn't happen (round composition is fixed up before this point),
+    // but never crash on it — just leave the odd one out rather than pair
+    // it with nobody
+    return greedyMinRepeatMatching(singleIds.slice(0,-1), partnerCount);
+  }
+  if(singleIds.length>12){
+    return greedyMinRepeatMatching(singleIds, partnerCount);
+  }
+  const matchings = generateMatchingsFast(singleIds);
+  let bestScore = -Infinity;
+  let bestOnes = [];
+  matchings.forEach(m=>{
+    let newCov = 0, repeatSum = 0;
+    m.forEach(([a,b])=>{
+      const key = pairKey(a,b);
+      if(preferCoverage && requiredPairs.has(key) && !coveredPairs.has(key)) newCov++;
+      repeatSum += (partnerCount[key]||0);
+    });
+    const score = newCov*1000 - repeatSum;
+    if(score > bestScore){ bestScore = score; bestOnes = [m]; }
+    else if(score === bestScore){ bestOnes.push(m); }
+  });
+  return bestOnes[Math.floor(Math.random()*bestOnes.length)];
+}
+
+function makeSession(){
+  const courtsCount = parseInt(document.getElementById('courts').value);
+  const perRoundPlaying = courtsCount*4;
+
+  const gamesPlayed = {};
+  const restStreak = {};
+  players.forEach(p=>{ gamesPlayed[p.id]=0; restStreak[p.id]=0; });
+
+  const fixedPairMap = {};
+  fixedPairs.forEach(([a,b])=>{ fixedPairMap[a]=b; fixedPairMap[b]=a; });
+  const freeIds = players.filter(p=>fixedPairMap[p.id]===undefined).map(p=>p.id);
+  const requiredPairs = new Set();
+  for(let i=0;i<freeIds.length;i++){
+    for(let j=i+1;j<freeIds.length;j++){
+      requiredPairs.add(pairKey(freeIds[i], freeIds[j]));
+    }
+  }
+
+  return {
+    courtsCount, perRoundPlaying,
+    gamesPlayed, restStreak,
+    partnerCount: {}, opponentCount: {},
+    fixedPairMap, freeIds, requiredPairs,
+    coveredPairs: new Set(),
+    fixedClashPairs: new Set(), // which pairs of fixed teams have already faced each other
+    rounds: [], cumulativeLog: [],
+    roundMode: 'auto'
+  };
+}
+
+function uncoveredCountForSession(session, id){
+  if(session.fixedPairMap[id]!==undefined) return 0;
+  let c = 0;
+  session.freeIds.forEach(otherId=>{
+    if(otherId===id) return;
+    if(!session.coveredPairs.has(pairKey(id,otherId))) c++;
+  });
+  return c;
+}
+
+// Builds exactly one more round on top of `session`'s current state and
+// appends it to session.rounds / session.cumulativeLog.
+// Best achievable match quality for splitting `ids` into 2-player teams:
+// maximizes never-partnered-before pairs first, and — this matters once
+// every combination has been used at least once — breaks ties by minimizing
+// how concentrated the repeats are (lowest total partner-count), so reuse
+// gets spread across everyone instead of the same two people getting stuck
+// with each other forever once fresh options run out.
+function bestMatchScore(ids, partnerCount){
+  if(ids.length===0) return {newCov:0, totalRepeat:0};
+  const template = matchingTemplate(ids.length);
+  let bestNewCov = -1, bestRepeat = Infinity;
+  for(let m=0; m<template.length; m++){
+    const matching = template[m];
+    let cov = 0, repeat = 0;
+    for(let p=0; p<matching.length; p++){
+      const a = ids[matching[p][0]], b = ids[matching[p][1]];
+      const cnt = partnerCount[pairKey(a,b)] || 0;
+      if(cnt===0) cov++;
+      repeat += cnt;
+    }
+    if(cov>bestNewCov || (cov===bestNewCov && repeat<bestRepeat)){
+      bestNewCov = cov; bestRepeat = repeat;
+    }
+  }
+  return {newCov: bestNewCov, totalRepeat: bestRepeat};
+}
+
+function greedyMinRepeatMatching(ids, partnerCount){
+  const remaining = ids.slice();
+  const teams = [];
+  while(remaining.length>=2){
+    let bestI=0, bestJ=1, bestScore=Infinity;
+    for(let i=0;i<remaining.length;i++){
+      for(let j=i+1;j<remaining.length;j++){
+        const sc = partnerCount[pairKey(remaining[i],remaining[j])]||0;
+        if(sc<bestScore){ bestScore=sc; bestI=i; bestJ=j; }
+      }
+    }
+    teams.push([remaining[bestI], remaining[bestJ]]);
+    remaining.splice(bestJ,1);
+    remaining.splice(bestI,1);
+  }
+  return teams;
+}
+
+// Same idea as bestMatchScore but for larger groups where exhaustive
+// matching is too slow: use the best-effort greedy matching's stats
+// instead.
+function approxMatchScore(ids, partnerCount){
+  if(ids.length<=9) return bestMatchScore(ids, partnerCount);
+  const m = greedyMinRepeatMatching(ids, partnerCount);
+  let cov=0, repeat=0;
+  m.forEach(([a,b])=>{
+    const cnt = partnerCount[pairKey(a,b)]||0;
+    if(cnt===0) cov++;
+    repeat += cnt;
+  });
+  return {newCov: cov, totalRepeat: repeat};
+}
+
+function pairTeamScore(teamA, teamB, opponentCount, fixedClashPairs, currentRoundNum, round50, round75){
+  let score = 0;
+  teamA.forEach(a=> teamB.forEach(b=>{ score += (opponentCount[pairKey(a,b)]||0); }));
+
+  // Tier 3: general opponent diversity (everyone, including individual
+  // fixed-pair members) — max possible here is 4 * 1e7 = 4e7, kept well
+  // below the fixed-vs-fixed tiers below so it never outranks them.
+  let repeatOpponentCount = 0;
+  teamA.forEach(a=> teamB.forEach(b=>{ if((opponentCount[pairKey(a,b)]||0)>0) repeatOpponentCount++; }));
+  if(repeatOpponentCount>0){
+    if(currentRoundNum >= round75) score += repeatOpponentCount * 1000;
+    else if(currentRoundNum >= round50) score += repeatOpponentCount * 100000;
+    else score += repeatOpponentCount * 10000000;
+  }
+
+  const idxA = fixedTeamIndex(teamA), idxB = fixedTeamIndex(teamB);
+  if(idxA>=0 && idxB>=0){
+    const clashKey = idxA<idxB ? `${idxA}_${idxB}` : `${idxB}_${idxA}`;
+    if(fixedClashPairs.has(clashKey)){
+      // Two fixed pairs that already met once — block a repeat, always
+      // outranking everything else, including their own not-yet-met case
+      // below
+      if(currentRoundNum >= round75) score += 1e10;
+      else if(currentRoundNum >= round50) score += 1e12;
+      else score += 1e14;
+    } else {
+      // Two fixed pairs that haven't met yet — not avoided, actually
+      // mildly preferred, so it's likely to happen once over the
+      // tournament for match variety (as long as it doesn't cost more
+      // than the general opponent-diversity tier above)
+      score -= 50;
+    }
+  }
+  return score;
+}
+
+// Decides which teams play which this round. For a small-enough number of
+// teams, searches every way to split them into matches and keeps the split
+// with the lowest total penalty (repeat opponents, fixed-vs-fixed clashes) —
+// so a good pairing for court 1 isn't chosen at the expense of a forced bad
+// pairing for court 2. Falls back to a fast sequential greedy for larger
+// team counts (many courts) where the full search would be too slow.
+function bestTeamPairing(teams, opponentCount, fixedClashPairs, currentRoundNum, round50, round75){
+  const n = teams.length;
+  if(n<2) return [];
+  if(n<=10){
+    const template = matchingTemplate(n);
+    let bestScore = Infinity, bestMatching = template[0];
+    for(let m=0;m<template.length;m++){
+      const matching = template[m];
+      let total = 0;
+      for(let p=0;p<matching.length;p++){
+        const [i,j] = matching[p];
+        total += pairTeamScore(teams[i], teams[j], opponentCount, fixedClashPairs, currentRoundNum, round50, round75);
+        if(total>=bestScore) break;
+      }
+      if(total<bestScore){ bestScore=total; bestMatching=matching; }
+    }
+    return bestMatching.map(([i,j])=>[teams[i], teams[j]]);
+  }
+  const remaining = [...teams];
+  const matches = [];
+  while(remaining.length>=2){
+    const teamA = remaining.shift();
+    let bestIdx=0, bestScore=Infinity;
+    for(let i=0;i<remaining.length;i++){
+      const sc = pairTeamScore(teamA, remaining[i], opponentCount, fixedClashPairs, currentRoundNum, round50, round75);
+      if(sc<bestScore){ bestScore=sc; bestIdx=i; }
+    }
+    matches.push([teamA, remaining.splice(bestIdx,1)[0]]);
+  }
+  return matches;
+}
+
+function buildOneRound(session){
+  const { gamesPlayed, restStreak, partnerCount, opponentCount, fixedPairMap, freeIds, requiredPairs, coveredPairs, fixedClashPairs, perRoundPlaying, roundMode } = session;
+
+  const handled = new Set();
+  const units = [];
+  players.forEach(p=>{
+    if(handled.has(p.id)) return;
+    if(fixedPairMap[p.id]!==undefined){
+      const partnerId = fixedPairMap[p.id];
+      if(!handled.has(partnerId)){
+        units.push({members:[p.id, partnerId], size:2});
+        handled.add(p.id); handled.add(partnerId);
+      }
+    } else {
+      units.push({members:[p.id], size:1});
+      handled.add(p.id);
+    }
+  });
+
+  units.forEach(u=>{
+    const avgGames = u.members.reduce((s,id)=>s+gamesPlayed[id],0)/u.members.length;
+    const avgRest = u.members.reduce((s,id)=>s+restStreak[id],0)/u.members.length;
+    const avgUncovered = roundMode==='auto'
+      ? u.members.reduce((s,id)=>s+uncoveredCountForSession(session,id),0)/u.members.length
+      : 0;
+    u.avgGames = avgGames;
+    u.avgRest = avgRest;
+    u.avgUncovered = avgUncovered;
+    // small ranking handicap so a fixed pair plays slightly less than
+    // everyone else (their "privilege"), while staying within the overall
+    // fairness gap — this is a tiny nudge, not a big penalty, since the gap
+    // rule below is what actually keeps everyone in check
+    u.effGames = avgGames + (u.size===2 ? 0.4 : 0);
+    // hard-forced this round if: waited out 2 rounds in a row (universal —
+    // applies to everyone, fixed pair included), or is a fixed pair that
+    // hasn't played at all yet and just sat once (never wait twice at the
+    // very start)
+    u.forced = avgRest>=2 || (u.size===2 && avgGames===0 && avgRest>=1);
+    u.jitter = Math.random();
+  });
+  units.sort((a,b)=>{
+    // 1. anyone hard-forced this round goes first
+    if(a.forced !== b.forced) return a.forced ? -1 : 1;
+    // 1b. among units that are BOTH already overdue, whoever has waited
+    //     longer goes first — otherwise the same lower-games unit can win
+    //     this tie every single round while a more-overdue one (which
+    //     just has a slightly higher games count) never gets let in,
+    //     spiraling its wait upward indefinitely instead of the 2-round
+    //     cap actually holding
+    if(a.forced && b.forced && a.avgRest !== b.avgRest) return b.avgRest - a.avgRest;
+    // among units that are both forced AND equally overdue, don't let the
+    // fixed-pair size handicap decide who gets the spot — a free single
+    // (1 seat) is "cheaper" to fit than a fixed pair (2 seats), so sorting
+    // by effGames here would let free singles systematically win this
+    // every time capacity is tight, leaving an equally-overdue fixed pair
+    // stuck forever. Pure random tie-break instead, so it's a fair coin
+    // flip regardless of size.
+    if(a.forced && b.forced && a.avgRest === b.avgRest) return a.jitter - b.jitter;
+    // 2. THE fairness rule: fewer games played always goes first — this is
+    //    what keeps the max-vs-min games gap (across every player, fixed
+    //    pair included) as tight as possible, round after round
+    if(a.effGames !== b.effGames) return a.effGames - b.effGames;
+    // 3. among equals, whoever has waited longest goes first
+    if(a.avgRest !== b.avgRest) return b.avgRest - a.avgRest;
+    // 4. among equals, prefer whoever still has the most unmet partner
+    //    combinations (helps push new-partner coverage without touching the
+    //    fairness ordering above)
+    if(a.avgUncovered !== b.avgUncovered) return b.avgUncovered - a.avgUncovered;
+    // 5. tiny random tiebreak
+    return a.jitter - b.jitter;
+  });
+
+  let capacity = perRoundPlaying;
+  const selected = [];
+  const sittingUnits = [];
+  for(const u of units){
+    if(u.size<=capacity){ selected.push(u); capacity -= u.size; }
+    else sittingUnits.push(u);
+  }
+  units.forEach(u=>{ if(!selected.includes(u) && !sittingUnits.includes(u)) sittingUnits.push(u); });
+
+  // With only size-1 (free single) and size-2 (fixed pair) units, greedy
+  // fill can leave exactly 1 slot unfillable — a size-2 unit was skipped
+  // for lack of room even though swapping out one already-picked single
+  // would free enough room for it. Left unfixed, this shorts the round by
+  // one player and corrupts team formation (a stray unpaired single). Fix
+  // it by demoting the lowest-priority selected single to make room.
+  while(capacity===1){
+    const skippedPair = sittingUnits.find(u=>u.size===2);
+    if(!skippedPair) break;
+    const selectedSingles = selected.filter(u=>u.size===1);
+    if(selectedSingles.length===0) break;
+    const demote = selectedSingles[selectedSingles.length-1];
+    selected.splice(selected.indexOf(demote), 1);
+    sittingUnits.push(demote);
+    sittingUnits.splice(sittingUnits.indexOf(skippedPair), 1);
+    selected.push(skippedPair);
+    capacity = capacity + demote.size - skippedPair.size;
+  }
+
+  // Total planned rounds / "is this a protected checkpoint" — computed
+  // once here so both the fixed-pair capacity logic below and the partner
+  // hill-climb further down can use it. A round is protected — no
+  // gap-widening "last resort" swap allowed — when it's the very last
+  // round of the schedule (nothing left to rebalance afterwards) OR when
+  // it lands right on an hour boundary given the match duration (so if the
+  // group stops there because their court time is up, that moment is
+  // already fair, gap <= 1, not mid-tradeoff).
+  let totalRoundsForLastRound = session.plannedTotalRounds;
+  if(!totalRoundsForLastRound){
+    const nAllForLastRound = players.length;
+    totalRoundsForLastRound = session.courtsCount>0 ? Math.ceil((nAllForLastRound*(nAllForLastRound-1)/2)/(2*session.courtsCount)) : 1;
+  }
+  const roundNum = session.rounds.length + 1;
+  const maxCheckpointRound = (session.roundsPerHour>0 && session.totalHours>0) ? session.roundsPerHour * session.totalHours : Infinity;
+  const isHourCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0 && roundNum <= maxCheckpointRound;
+  const isLastPlannedRound = roundNum === totalRoundsForLastRound || isHourCheckpoint;
+
+  // On a protected round, make sure every unit tied at the games-played
+  // minimum actually gets to play — including a fixed pair that lost a
+  // sort tie-break earlier and ended up sitting even though it was exactly
+  // as "due" to play as whoever did get selected. Without this, that pair
+  // is left behind while everyone else advances, creating the very gap
+  // this round is supposed to prevent. Bring it in by bumping out an
+  // already-selected free single that ISN'T also at the minimum (so
+  // nobody's fairness gets worse, only better).
+  if(isLastPlannedRound && fixedPairs.length>1){
+    const globalMinGames = Math.min(...players.map(p=>gamesPlayed[p.id]));
+    const minTiedFixedSitting = units.filter(u=>{
+      if(u.size!==2 || !sittingUnits.includes(u)) return false;
+      const avg = u.members.reduce((s,id)=>s+gamesPlayed[id],0)/u.members.length;
+      return avg===globalMinGames;
+    });
+    minTiedFixedSitting.forEach(fixedUnit=>{
+      const candidates = selected.filter(u=>u.size===1)
+        .filter(u=>gamesPlayed[u.members[0]]>globalMinGames)
+        .sort((a,b)=>gamesPlayed[b.members[0]]-gamesPlayed[a.members[0]]);
+      if(candidates.length>=2){
+        const [d1, d2] = candidates;
+        selected.splice(selected.indexOf(d1),1);
+        selected.splice(selected.indexOf(d2),1);
+        sittingUnits.push(d1,d2);
+        sittingUnits.splice(sittingUnits.indexOf(fixedUnit),1);
+        selected.push(fixedUnit);
+      }
+    });
+  }
+
+  // If more fixed pairs would play this round than can each be matched
+  // against a distinct non-fixed team, some of them are guaranteed to face
+  // each other (not enough free teams to go around). Demote fixed pairs
+  // beyond the safe count back to sitting and pull in free singles instead
+  // — but never demote a fixed pair that's here because it hit the
+  // rest-streak hard cap (constraint #1 outranks this).
+  if(fixedPairs.length>1){
+    const selectedFixedUnits = selected.filter(u=>u.size===2);
+    // to guarantee every fixed pair can be matched against a distinct
+    // non-fixed team, we need (fixed pairs playing) <= (free teams
+    // playing) = (free singles playing)/2, i.e. at most floor(capacity/4)
+    // fixed pairs given capacity = 2*fixedCount + freeSinglesCount
+    const safeMaxFixed = Math.floor(perRoundPlaying/4);
+    if(selectedFixedUnits.length > safeMaxFixed){
+      const forced = selectedFixedUnits.filter(u=>u.members.some(id=>restStreak[id]>=2));
+      const notForced = selectedFixedUnits.filter(u=>!u.members.some(id=>restStreak[id]>=2));
+      const keepCount = Math.max(forced.length, safeMaxFixed);
+      let demotable = notForced.slice(Math.max(0, keepCount - forced.length));
+      // don't demote a pair that's currently sitting next to another fixed
+      // pair it hasn't met yet — give that meeting its one chance to
+      // happen (fixed pairs are meant to face each other exactly once)
+      outer:
+      for(let i=0;i<selectedFixedUnits.length;i++){
+        for(let j=i+1;j<selectedFixedUnits.length;j++){
+          const ia = fixedTeamIndex(selectedFixedUnits[i].members);
+          const ib = fixedTeamIndex(selectedFixedUnits[j].members);
+          const key = ia<ib ? ia+'_'+ib : ib+'_'+ia;
+          if(!fixedClashPairs.has(key)){
+            demotable = demotable.filter(u=>u!==selectedFixedUnits[i] && u!==selectedFixedUnits[j]);
+            break outer;
+          }
+        }
+      }
+      // on a protected round (last round / hour checkpoint), don't demote
+      // a fixed pair that's tied at the games-played minimum — doing so
+      // would leave it behind while everyone else advances, which is
+      // exactly the gap this round is supposed to guarantee stays <= 1.
+      // Fairness wins here even if it means accepting an extra fixed pair
+      // playing (and risking a clash) just this once.
+      if(isLastPlannedRound){
+        const currentGlobalMin = Math.min(...players.map(p=>gamesPlayed[p.id]));
+        demotable = demotable.filter(u=>{
+          const avg = u.members.reduce((s,id)=>s+gamesPlayed[id],0)/u.members.length;
+          return avg > currentGlobalMin;
+        });
+      }
+      const sittingFreeUnits = sittingUnits.filter(u=>u.size===1);
+      // games-played fairness (constraint #2) outranks clash-avoidance
+      // (constraint #5) — don't force this swap if the free players it
+      // would pull in are already worse off (more games played) than the
+      // fixed pair it's demoting; better to accept an occasional clash
+      // than to keep overworking a small free-player pool
+      for(const outUnit of demotable){
+        if(sittingFreeUnits.length<2) break;
+        const inUnit1 = sittingFreeUnits[0];
+        const inUnit2 = sittingFreeUnits[1];
+        const outGames = outUnit.members.reduce((s,id)=>s+gamesPlayed[id],0)/outUnit.members.length;
+        const inGames = (gamesPlayed[inUnit1.members[0]] + gamesPlayed[inUnit2.members[0]]) / 2;
+        const tolerance = isLastPlannedRound ? 0 : 1;
+        if(inGames > outGames + tolerance) break;
+        sittingFreeUnits.shift(); sittingFreeUnits.shift();
+        selected.splice(selected.indexOf(outUnit), 1);
+        sittingUnits.push(outUnit);
+        sittingUnits.splice(sittingUnits.indexOf(inUnit1), 1);
+        sittingUnits.splice(sittingUnits.indexOf(inUnit2), 1);
+        selected.push(inUnit1, inUnit2);
+      }
+    }
+  }
+
+  // Auto mode: don't let anyone repeat a partner while unused new-partner
+  // combinations still exist elsewhere in the pool. Hill-climb: repeatedly
+  // swap in whichever sitting free player raises the number of brand-new
+  // pairs achievable this round, one swap at a time, until no swap helps
+  // any more. This pulls the selection away from a "stuck" subgroup that
+  // has already used up all its own internal combinations.
+  if(roundMode==='auto'){
+    const selSingleUnits0 = selected.filter(u=>u.size===1);
+    if(selSingleUnits0.length>=2){
+      let currentUnits = selSingleUnits0.slice();
+      let pool = sittingUnits.filter(u=>u.size===1);
+      // don't let the coverage hill-climb pull anyone currently at the very
+      // lowest games-played count out of the lineup — that's specifically
+      // what widens the fairness gap. Swaps among everyone else are fine.
+      const globalMinGames = Math.min(...players.map(p=>gamesPlayed[p.id]));
+      // (isLastPlannedRound computed above, near the top of the function —
+      // on the very last round, don't let a gap-widening "last resort" swap
+      // happen at all, since there's no following round left to rebalance
+      // it back down)
+      const matchScoreOf = ids => ids.length<=9 ? bestMatchScore(ids, partnerCount) : approxMatchScore(ids, partnerCount);
+      let iterations = 0;
+      while(iterations<6 && pool.length>0){
+        iterations++;
+        const currentIds = currentUnits.map(u=>u.members[0]);
+        const baseResult = matchScoreOf(currentIds);
+        const perfectScore = currentIds.length/2;
+        if(baseResult.newCov === perfectScore) break; // already fully new
+
+        // Try swap candidates in two passes. Rest-streak protection
+        // (constraint #1, the hardest rule) is NEVER broken by this
+        // hill-climb, no matter what — someone who's overdue to play is
+        // simply off-limits as a swap target, full stop. Games-fairness
+        // protection (constraint #2) can be broken, but only as a genuine
+        // last resort, and only for a fully-new (perfect) matching, never a
+        // merely-better one.
+        //
+        // Even when no swap can add a brand-new pairing, one can still be
+        // "better" by lowering how concentrated the reuse is (fewer total
+        // repeats) — that's what stops the same two people getting stuck
+        // together every time once all fresh combinations are used up.
+        function isBetter(a, b){
+          if(a.newCov !== b.newCov) return a.newCov > b.newCov;
+          return a.totalRepeat < b.totalRepeat;
+        }
+        function findSwap(allowGamesProtected, requirePerfectWhenProtected){
+          let localBest = null, localBestResult = null;
+          for(let oi=0; oi<currentUnits.length; oi++){
+            const isRestProtected = currentUnits[oi].members.some(id=>restStreak[id]>=2);
+            if(isRestProtected) continue;
+            const outGames = gamesPlayed[currentUnits[oi].members[0]];
+            const isGamesProtected = outGames===globalMinGames;
+            for(let pi=0; pi<pool.length; pi++){
+              const inGames = gamesPlayed[pool[pi].members[0]];
+              const touchesProtected = isGamesProtected && inGames>globalMinGames;
+              if(touchesProtected && !allowGamesProtected) continue;
+              const candidateIds = currentIds.slice();
+              candidateIds[oi] = pool[pi].members[0];
+              const candidateResult = matchScoreOf(candidateIds);
+              if(touchesProtected && requirePerfectWhenProtected && candidateResult.newCov!==perfectScore) continue;
+              if(!isBetter(candidateResult, baseResult)) continue;
+              if(!localBestResult || isBetter(candidateResult, localBestResult)){
+                localBest = {oi, pi}; localBestResult = candidateResult;
+              }
+            }
+          }
+          return localBest;
+        }
+
+        const bestSwap = findSwap(false, false)
+          || (isLastPlannedRound ? null : findSwap(true, true));
+
+        if(!bestSwap) break;
+        const outUnit = currentUnits[bestSwap.oi];
+        const inUnit = pool[bestSwap.pi];
+        currentUnits[bestSwap.oi] = inUnit;
+        pool[bestSwap.pi] = outUnit;
+      }
+      for(let k=0;k<selSingleUnits0.length;k++){
+        if(currentUnits[k] !== selSingleUnits0[k]){
+          const outUnit = selSingleUnits0[k];
+          const inUnit = currentUnits[k];
+          const selIdx = selected.indexOf(outUnit);
+          const sitIdx = sittingUnits.indexOf(inUnit);
+          if(selIdx>=0 && sitIdx>=0){
+            selected[selIdx] = inUnit;
+            sittingUnits[sitIdx] = outUnit;
+          }
+        }
+      }
+    }
+  }
+
+  const teams = [];
+  const singles = [];
+  selected.forEach(u=>{
+    if(u.size===2) teams.push([u.members[0], u.members[1]]);
+    else singles.push(u.members[0]);
+  });
+
+  const singleTeams = bestMatchingForSingles(singles, partnerCount, requiredPairs, coveredPairs, roundMode==='auto');
+  singleTeams.forEach(t=> teams.push(t));
+
+  teams.sort(()=>Math.random()-0.5);
+  if(fixedPairs.length>1){
+    // process fixed-pair teams first so they pick their opponent while
+    // plenty of non-fixed options are still available, instead of risking
+    // being left as each other's only leftover at the end
+    const fixedTeams = teams.filter(isFixedTeam);
+    const otherTeams = teams.filter(t=>!isFixedTeam(t));
+    teams.length = 0;
+    teams.push(...fixedTeams, ...otherTeams);
+  }
+  const nAllForClash = players.length;
+  const totalRoundsForClash = session.courtsCount>0 ? Math.ceil((nAllForClash*(nAllForClash-1)/2)/(2*session.courtsCount)) : 1;
+  const currentRoundNum = session.rounds.length + 1;
+  const round75 = Math.ceil(totalRoundsForClash*0.75);
+  const round50 = Math.ceil(totalRoundsForClash*0.5);
+
+  const matches = bestTeamPairing(teams, opponentCount, fixedClashPairs, currentRoundNum, round50, round75);
+
+  matches.forEach(([teamA, teamB])=>{
+    [...teamA, ...teamB].forEach(id=>{ gamesPlayed[id]++; restStreak[id]=0; });
+    partnerCount[pairKey(teamA[0],teamA[1])] = (partnerCount[pairKey(teamA[0],teamA[1])]||0)+1;
+    partnerCount[pairKey(teamB[0],teamB[1])] = (partnerCount[pairKey(teamB[0],teamB[1])]||0)+1;
+    coveredPairs.add(pairKey(teamA[0],teamA[1]));
+    coveredPairs.add(pairKey(teamB[0],teamB[1]));
+    teamA.forEach(a=> teamB.forEach(b=>{
+      opponentCount[pairKey(a,b)] = (opponentCount[pairKey(a,b)]||0)+1;
+    }));
+    const idxA = fixedTeamIndex(teamA), idxB = fixedTeamIndex(teamB);
+    if(idxA>=0 && idxB>=0){
+      const clashKey = idxA<idxB ? `${idxA}_${idxB}` : `${idxB}_${idxA}`;
+      fixedClashPairs.add(clashKey);
+    }
+  });
+
+  const sittingIds = [];
+  sittingUnits.forEach(u=> u.members.forEach(id=> sittingIds.push(id)));
+  sittingIds.forEach(id=> restStreak[id]++);
+
+  session.rounds.push({matches, sitting: sittingIds});
+  session.cumulativeLog.push({...gamesPlayed});
+}
+
+let currentSession = null;
+let currentRoundIndex = 0;
+let summaryVisible = false;
+
+function generate(){
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.textContent = '';
+  const courtsCount = parseInt(document.getElementById('courts').value);
+  const perRoundPlaying = courtsCount*4;
+  const SAFETY_CAP = 200;
+
+  if(!courtsCount || courtsCount<1){ errorEl.textContent='Jumlah lapangan minimal 1.'; return; }
+  if(players.length < perRoundPlaying){
+    errorEl.textContent = `Pemain kurang. Butuh minimal ${perRoundPlaying} pemain untuk ${courtsCount} lapangan.`;
+    return;
+  }
+
+  const session = makeSession();
+
+  const nAll = players.length;
+  const pairsPerRoundAll = 2*courtsCount;
+  const autoTotalRounds = pairsPerRoundAll>0 ? Math.ceil((nAll*(nAll-1)/2) / pairsPerRoundAll) : 0;
+
+  // Round count is never cut short — the full round-robin still runs. But
+  // whichever round lands right on an hour boundary (given match duration)
+  // gets the same "no gap-widening last resort" protection as the very
+  // last round: if the group happens to stop at the 1hr/2hr/3hr/... mark,
+  // that moment should already be fair (gap <= 1), not mid-tradeoff.
+  const duration = currentMatchDuration();
+  session.roundsPerHour = duration>0 ? Math.max(1, Math.floor(60/duration)) : 0;
+  session.totalHours = parseFloat(document.getElementById('totalHours').value) || 0;
+
+  const howMany = Math.min(autoTotalRounds, SAFETY_CAP);
+  session.plannedTotalRounds = howMany;
+
+  for(let r=0; r<howMany; r++){ buildOneRound(session); }
+
+  currentSession = session;
+  matchScores = {};
+  currentRoundIndex = 0;
+  summaryVisible = false;
+  document.getElementById('resumeBtn').classList.remove('hidden');
+  showRoundPageOnly();
+  saveState();
+}
+
+function showRoundPageOnly(){
+  document.getElementById('pageSetup').classList.add('hidden');
+  document.getElementById('pageRound').classList.remove('hidden');
+  renderRoundPage();
+  saveState();
+}
+
+function backToSetup(){
+  document.getElementById('pageRound').classList.add('hidden');
+  document.getElementById('pageSetup').classList.remove('hidden');
+  saveState();
+}
+
+function prevRound(){
+  if(!currentSession) return;
+  if(currentRoundIndex>0){ currentRoundIndex--; renderRoundPage(); saveState(); }
+}
+
+function nextRound(){
+  if(!currentSession) return;
+  if(currentRoundIndex < currentSession.rounds.length-1){
+    currentRoundIndex++;
+    renderRoundPage();
+    saveState();
+  } else {
+    promptAddRounds();
+  }
+}
+
+function toggleSummary(){
+  summaryVisible = !summaryVisible;
+  const panel = document.getElementById('summaryPanel');
+  const btn = document.getElementById('summaryToggleBtn');
+  const roundContent = document.getElementById('roundContent');
+  if(summaryVisible){
+    panel.classList.remove('hidden');
+    panel.innerHTML = buildSummaryHtml(currentSession);
+    btn.textContent = '✕ Tutup Summary';
+    roundContent.classList.add('hidden');
+  } else {
+    panel.classList.add('hidden');
+    btn.textContent = '📊 Lihat Summary';
+    roundContent.classList.remove('hidden');
+  }
+  saveState();
+}
+
+function promptAddRounds(){
+  const root = document.getElementById('padelModalRoot');
+  root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this) closeScorePicker()">
+    <div class="modal-box">
+      <p class="modal-title">Round udah habis. Tambah lagi?</p>
+      <div class="add-row" style="margin-bottom:12px;">
+        <input type="number" id="addRoundsCount" min="1" value="5">
+        <button class="btn" onclick="confirmAddRounds()">Tambah</button>
+      </div>
+      <button class="modal-cancel" onclick="closeScorePicker()">Nanti aja</button>
+    </div>
+  </div>`;
+}
+
+function confirmAddRounds(){
+  const input = document.getElementById('addRoundsCount');
+  const n = parseInt(input.value) || 5;
+  currentSession.plannedTotalRounds = currentSession.rounds.length + n;
+  for(let i=0;i<n;i++){ buildOneRound(currentSession); }
+  closeScorePicker();
+  currentRoundIndex++;
+  renderRoundPage();
+  saveState();
+}
+
+let matchScores = {}; // key `${r}_${c}` -> {A:num|null, B:num|null}
+
+function nameOf(id){ return players.find(p=>p.id===id)?.name || '?'; }
+
+function isFixedTeam(team){
+  return fixedPairs.some(([a,b])=>
+    (team[0]===a && team[1]===b) || (team[0]===b && team[1]===a)
+  );
+}
+
+// Index of the fixed pair this team corresponds to, or -1 if it isn't one.
+function fixedTeamIndex(team){
+  return fixedPairs.findIndex(([a,b])=>
+    (team[0]===a && team[1]===b) || (team[0]===b && team[1]===a)
+  );
+}
+
+function openScorePicker(r, c, team){
+  const target = getScoreTarget().target;
+  const root = document.getElementById('padelModalRoot');
+  let buttons = '';
+  for(let v=0; v<=target; v++){
+    buttons += `<button onclick="setScore(${r},${c},'${team}',${v})">${v}</button>`;
+  }
+  root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this) closeScorePicker()">
+    <div class="modal-box">
+      <p class="modal-title">Skor tim ${team==='A' ? '1' : '2'} (total ${target})</p>
+      <div class="modal-grid">${buttons}</div>
+      <button class="modal-cancel" onclick="closeScorePicker()">Batal</button>
+    </div>
+  </div>`;
+}
+
+function closeScorePicker(){
+  document.getElementById('padelModalRoot').innerHTML = '';
+}
+
+// ---- swap a player's spot in one round with another player (substitute) ----
+// Note: this only fixes up that one round's lineup and the simple
+// games-played count — it does NOT retroactively recompute partner/opponent
+// history or rest-streaks for the swapped players. It's meant for one-off
+// corrections (someone couldn't make it, swap in a substitute), not for
+// keeping every fairness stat perfectly in sync going forward.
+// Scans the whole session for constraint problems: anyone with a 3+
+// consecutive sit-out streak (constraint #1), and any hour-checkpoint
+// round where the games-played gap exceeds 1 (the per-hour fairness
+// guarantee). Used to detect whether a manual swap makes something newly
+// broken that wasn't already broken before it.
+function checkConstraintViolations(session){
+  const streaks = {};
+  const streakPlayers = [];
+  players.forEach(p=>{ streaks[p.id]=0; });
+  const gapRounds = [];
+  session.rounds.forEach((round,r)=>{
+    players.forEach(p=>{
+      if(round.sitting.includes(p.id)){
+        streaks[p.id]++;
+        if(streaks[p.id]>2 && !streakPlayers.includes(p.id)) streakPlayers.push(p.id);
+      } else {
+        streaks[p.id]=0;
+      }
+    });
+    const roundNum = r+1;
+    const maxCheckpointRound = (session.roundsPerHour>0 && session.totalHours>0) ? session.roundsPerHour*session.totalHours : Infinity;
+    const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour===0 && roundNum<=maxCheckpointRound;
+    if(isCheckpoint){
+      const vals = players.map(p=> session.cumulativeLog[r] ? (session.cumulativeLog[r][p.id]||0) : 0);
+      const gap = Math.max(...vals) - Math.min(...vals);
+      if(gap>1) gapRounds.push(r);
+    }
+  });
+  return { streakPlayers, gapRounds };
+}
+
+function findPlayerLocation(round, playerId){
+  for(let c=0;c<round.matches.length;c++){
+    const [teamA, teamB] = round.matches[c];
+    let idx = teamA.indexOf(playerId);
+    if(idx>=0) return {type:'match', court:c, side:'A', slot:idx};
+    idx = teamB.indexOf(playerId);
+    if(idx>=0) return {type:'match', court:c, side:'B', slot:idx};
+  }
+  const sIdx = round.sitting.indexOf(playerId);
+  if(sIdx>=0) return {type:'sitting', slot:sIdx};
+  return null;
+}
+
+function openPlayerSwapModal(roundIdx, playerId){
+  if(currentSession.fixedPairMap && currentSession.fixedPairMap[playerId]!==undefined){
+    alert('Fixed pair gak bisa ditukar satu per satu — mereka emang selalu main bareng partnernya.');
+    return;
+  }
+  const otherPlayers = players.filter(p=>
+    p.id!==playerId && (!currentSession.fixedPairMap || currentSession.fixedPairMap[p.id]===undefined)
+  );
+  if(otherPlayers.length===0){ alert('Gak ada pemain bebas lain buat ditukar.'); return; }
+
+  const root = document.getElementById('padelModalRoot');
+  root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this) closeScorePicker()">
+    <div class="modal-box">
+      <p class="modal-title">Tukar ${escapeHtml(nameOf(playerId))} dengan siapa? (di seluruh jadwal)</p>
+      ${otherPlayers.map(p=>`<button class="btn secondary" style="width:100%; margin-bottom:8px; text-align:left;" onclick="swapPlayerInRound(${roundIdx},${playerId},${p.id})">${escapeHtml(p.name)}</button>`).join('')}
+      <button class="modal-cancel" onclick="closeScorePicker()">Batal</button>
+    </div>
+  </div>`;
+}
+
+// Swaps two players' entire identities across the WHOLE tournament — every
+// round where oldId appears (playing or sitting), newId takes that exact
+// spot instead, and vice versa. This is just relabeling who's who: it
+// never changes the underlying pattern of who played when, with whom, or
+// against whom, so it can never break gap, rest-streak, or partner-variety
+// fairness — there's nothing to warn about.
+function swapPlayerInRound(roundIdxIgnored, oldId, newId){
+  currentSession.rounds.forEach(round=>{
+    round.matches.forEach(([teamA, teamB])=>{
+      [teamA, teamB].forEach(team=>{
+        team.forEach((id,i)=>{
+          if(id===oldId) team[i]=newId;
+          else if(id===newId) team[i]=oldId;
+        });
+      });
+    });
+    round.sitting.forEach((id,i)=>{
+      if(id===oldId) round.sitting[i]=newId;
+      else if(id===newId) round.sitting[i]=oldId;
+    });
+  });
+  recalculateFromRounds(currentSession);
+
+  closeScorePicker();
+  renderRoundPage();
+  if(summaryVisible){
+    document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
+  }
+  saveState();
+}
+
+// Rebuilds every fairness-tracking structure the scheduler uses for
+// generating FUTURE rounds — gamesPlayed, restStreak, partnerCount,
+// opponentCount, coveredPairs, fixedClashPairs, and cumulativeLog — by
+// replaying every round's actual (possibly swap-corrected) match/sitting
+// data from scratch. Without this, a manual swap in an earlier round would
+// leave all these counters stale, and "Tambah Round" afterwards could
+// quietly break the same fairness guarantees (gap, partner rotation,
+// rest-streak cap, fixed-pair clash limit) the algorithm otherwise holds to.
+function recalculateFromRounds(session){
+  const gamesPlayed = {};
+  const restStreak = {};
+  const partnerCount = {};
+  const opponentCount = {};
+  const coveredPairs = new Set();
+  const fixedClashPairs = new Set();
+  players.forEach(p=>{ gamesPlayed[p.id]=0; restStreak[p.id]=0; });
+
+  const newLog = [];
+
+  session.rounds.forEach(round=>{
+    const playingIds = new Set();
+    round.matches.forEach(([teamA, teamB])=>{
+      const keyA = pairKey(teamA[0], teamA[1]);
+      const keyB = pairKey(teamB[0], teamB[1]);
+      partnerCount[keyA] = (partnerCount[keyA]||0) + 1;
+      partnerCount[keyB] = (partnerCount[keyB]||0) + 1;
+      coveredPairs.add(keyA);
+      coveredPairs.add(keyB);
+
+      teamA.forEach(a=> teamB.forEach(b=>{
+        const k = pairKey(a,b);
+        opponentCount[k] = (opponentCount[k]||0) + 1;
+      }));
+
+      if(isFixedTeam(teamA) && isFixedTeam(teamB)){
+        const ia = fixedTeamIndex(teamA), ib = fixedTeamIndex(teamB);
+        const k = ia<ib ? ia+'_'+ib : ib+'_'+ia;
+        fixedClashPairs.add(k);
+      }
+
+      teamA.concat(teamB).forEach(id=>{
+        playingIds.add(id);
+        gamesPlayed[id] = (gamesPlayed[id]||0) + 1;
+      });
+    });
+
+    players.forEach(p=>{
+      if(playingIds.has(p.id)) restStreak[p.id] = 0;
+      else restStreak[p.id] = (restStreak[p.id]||0) + 1;
+    });
+
+    newLog.push({...gamesPlayed});
+  });
+
+  session.gamesPlayed = gamesPlayed;
+  session.restStreak = restStreak;
+  session.partnerCount = partnerCount;
+  session.opponentCount = opponentCount;
+  session.coveredPairs = coveredPairs;
+  session.fixedClashPairs = fixedClashPairs;
+  session.cumulativeLog = newLog;
+}
+
+
+function setScore(r, c, team, val){
+  const target = getScoreTarget().target;
+  const key = `${r}_${c}`;
+  const other = team==='A' ? 'B' : 'A';
+  matchScores[key] = matchScores[key] || {A:null, B:null};
+  matchScores[key][team] = val;
+  matchScores[key][other] = target - val;
+
+  const btnA = document.getElementById(`scoreBtn_${r}_${c}_A`);
+  const btnB = document.getElementById(`scoreBtn_${r}_${c}_B`);
+  if(btnA){ btnA.textContent = String(matchScores[key].A).padStart(2,'0'); btnA.classList.add('filled'); }
+  if(btnB){ btnB.textContent = String(matchScores[key].B).padStart(2,'0'); btnB.classList.add('filled'); }
+
+  closeScorePicker();
+
+  if(summaryVisible){
+    document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
+  }
+  syncPadelScoreToHistory(r, c);
+  saveState();
+}
+
+// Renders just the current round (courts + rest list) into #roundContent,
+// and updates the round indicator / nav.
+function renderRoundPage(){
+  const session = currentSession;
+  const rounds = session.rounds;
+  const idx = currentRoundIndex;
+  const round = rounds[idx];
+
+  document.getElementById('roundIndicator').textContent = `Round ${idx+1} / ${rounds.length}`;
+  const label2 = document.getElementById('padelSessionTitleLabel2');
+  if(label2) label2.textContent = activeSessionTitle() ? `📋 ${activeSessionTitle()}` : '';
+
+  let html = `<div class="info" style="margin-bottom:10px;">Format skor: ${escapeHtml(getScoreTarget().label)}.</div>`;
+  const compactCls = round.matches.length>1 ? ' compact' : '';
+  html += `<div class="round">`;
+  round.matches.forEach((match, ci)=>{
+    const [teamA, teamB] = match;
+    const sc = matchScores[`${idx}_${ci}`];
+    const valA = sc && sc.A!==null ? String(sc.A).padStart(2,'0') : '–';
+    const valB = sc && sc.B!==null ? String(sc.B).padStart(2,'0') : '–';
+    const filledCls = sc && sc.A!==null ? ' filled' : '';
+    html += `<div class="match-card${compactCls}">
+      <div class="court-header">Lapangan ${ci+1}</div>
+      <div class="score-row">
+        <div class="score-box${filledCls}" id="scoreBtn_${idx}_${ci}_A" onclick="openScorePicker(${idx},${ci},'A')">${valA}</div>
+        <div class="vs-label">VS</div>
+        <div class="score-box${filledCls}" id="scoreBtn_${idx}_${ci}_B" onclick="openScorePicker(${idx},${ci},'B')">${valB}</div>
+      </div>
+      <div class="teams-row">
+        <div class="team-col${isFixedTeam(teamA) ? ' fixed-team' : ''}">
+          <div class="player-row" onclick="openPlayerSwapModal(${idx},${teamA[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[0]))}</span></div>
+          <div class="player-row" onclick="openPlayerSwapModal(${idx},${teamA[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[1]))}</span></div>
+        </div>
+        <div class="team-col${isFixedTeam(teamB) ? ' fixed-team' : ''}">
+          <div class="player-row" onclick="openPlayerSwapModal(${idx},${teamB[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[0]))}</span></div>
+          <div class="player-row" onclick="openPlayerSwapModal(${idx},${teamB[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[1]))}</span></div>
+        </div>
+      </div>
+    </div>`;
+  });
+  if(round.sitting.length>0){
+    html += `<div class="rest-box">Istirahat: ${round.sitting.map(id=>escapeHtml(nameOf(id))).join(', ')}</div>`;
+  }
+  html += `</div>`;
+
+  if(idx===rounds.length-1 && session.roundMode==='auto'){
+    html += `<div class="info">${escapeHtml(coverageNoteFor(session))}</div>`;
+  }
+
+  const roundContentEl = document.getElementById('roundContent');
+  roundContentEl.innerHTML = html;
+  roundContentEl.classList.toggle('hidden', summaryVisible);
+
+  if(summaryVisible){
+    document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(session);
+  }
+}
+
+function coverageNoteFor(session){
+  return `${session.rounds.length} round total (mengikuti skenario tanpa partner tetap). ${session.coveredPairs.size} dari ${session.requiredPairs.size} kombinasi partner bebas sudah tercover${session.coveredPairs.size<session.requiredPairs.size ? ' — sisanya bakal ada pasangan yang berulang tapi lawan tetap divariasikan.' : '.'}`;
+}
+
+function ordinal(n){
+  const s = ["th","st","nd","rd"];
+  const v = n%100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+function avatarSvg(){
+  return `<div class="avatar-circle"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" fill="#c7c8f5"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="#c7c8f5"/></svg></div>`;
+}
+
+function computeStats(session){
+  const stats = {};
+  players.forEach(p=>{ stats[p.id] = {win:0, lose:0, draw:0, poin:0, poinLawan:0, played:0}; });
+  session.rounds.forEach((round, r)=>{
+    round.matches.forEach((match, c)=>{
+      const key = `${r}_${c}`;
+      const sc = matchScores[key];
+      if(!sc || sc.A===null || sc.B===null) return;
+      const sA = sc.A, sB = sc.B;
+      const [teamA, teamB] = match;
+      teamA.forEach(id=>{
+        stats[id].played++; stats[id].poin += sA; stats[id].poinLawan += sB;
+        if(sA>sB) stats[id].win++; else if(sA<sB) stats[id].lose++; else stats[id].draw++;
+      });
+      teamB.forEach(id=>{
+        stats[id].played++; stats[id].poin += sB; stats[id].poinLawan += sA;
+        if(sB>sA) stats[id].win++; else if(sB<sA) stats[id].lose++; else stats[id].draw++;
+      });
+    });
+  });
+  return stats;
+}
+
+// Combined summary panel: times-played board, score/W-L-T board (if any score
+// entered), and the cumulative per-round progress table. Shown/hidden via the
+// "Lihat Summary" toggle on every round page.
+function buildSummaryHtml(session){
+  const gamesPlayed = session.gamesPlayed;
+  const cumulativeLog = session.cumulativeLog;
+  const rounds = session.rounds;
+  const target = getScoreTarget().target;
+  let html = '';
+
+  // -- score / W-L-T board (always shown; zeros until scores are entered) --
+  {
+    const stats = computeStats(session);
+    html += `<div class="board">
+      <h2 class="board-title">${escapeHtml(activeSessionTitle() || (players.length+' PAX'))}</h2>
+      <div class="board-sub">
+        <span>${players.length} Players</span><span>${session.courtsCount} Courts</span><span>Total of ${target}</span>
+      </div>
+      <div class="board-head">
+        <span class="c-name">Name</span><span class="c-wlt">W-L-T</span><span class="c-diff">Diff</span><span class="c-pts">Points</span>
+      </div>`;
+    const ranked = players.slice().sort((a,b)=>{
+      const sa = stats[a.id], sb = stats[b.id];
+      if(sb.poin !== sa.poin) return sb.poin - sa.poin;
+      const diffA = sa.poin - sa.poinLawan, diffB = sb.poin - sb.poinLawan;
+      if(diffB !== diffA) return diffB - diffA;
+      return sb.win - sa.win;
+    });
+    ranked.forEach((p, i)=>{
+      const s = stats[p.id];
+      const diff = s.poin - s.poinLawan;
+      const tier = i<3 ? 'tier-green' : 'tier-purple';
+      html += `<div class="board-row ${tier}">
+        <span class="board-rank">${ordinal(i+1)}</span>
+        ${avatarSvg()}
+        <span class="board-name">${escapeHtml(p.name)}</span>
+        <span class="board-wlt">${s.win}-${s.lose}-${s.draw}</span>
+        <span class="board-diff">${diff>0?'+':''}${diff}</span>
+        <span class="board-pts">${s.poin}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // -- cumulative progress table --
+  if(cumulativeLog && cumulativeLog.length>0){
+    html += `<div class="card" style="margin-top:14px;">
+      <h3 style="margin-top:0; font-size:15px;">Progres Main (kumulatif per round)</h3>
+      <div class="table-scroll"><table class="progress-table">
+        <thead><tr><th class="sticky-col">Pemain</th>`;
+    rounds.forEach((_,idx)=>{
+      const roundNum = idx+1;
+      const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
+        && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
+      html += isCheckpoint
+        ? `<th class="checkpoint-col">R${roundNum}<br><span class="checkpoint-tag">⏱${roundNum/session.roundsPerHour}j</span></th>`
+        : `<th>R${roundNum}</th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    // figure out, per round, which (non-fixed) players were on a team that
+    // had already partnered together before (2nd+ time) — flagged below.
+    // Each distinct repeating pair gets its own color so it's easy to see
+    // which two players it actually is when several show up at once.
+    // Fixed pairs are excluded here since repeating is expected for them
+    // every round — they get their name highlighted green instead.
+    const repeatPlayersByRound = rounds.map(()=> new Map()); // playerId -> pairKey
+    const runningPartnerCount = {};
+    const pairColorIndex = {};
+    let nextColorIdx = 0;
+    const REPEAT_COLOR_COUNT = 8;
+    rounds.forEach((round, r)=>{
+      round.matches.forEach(([teamA, teamB])=>{
+        [teamA, teamB].forEach(team=>{
+          if(isFixedTeam(team)) return;
+          const key = pairKey(team[0], team[1]);
+          runningPartnerCount[key] = (runningPartnerCount[key]||0) + 1;
+          if(runningPartnerCount[key] >= 2){
+            if(pairColorIndex[key]===undefined){
+              pairColorIndex[key] = nextColorIdx % REPEAT_COLOR_COUNT;
+              nextColorIdx++;
+            }
+            team.forEach(id=> repeatPlayersByRound[r].set(id, key));
+          }
+        });
+      });
+    });
+
+    players.forEach(p=>{
+      // find rounds where this player sat out 2+ times in a row, to flag in red
+      const sat = rounds.map(r => r.sitting.includes(p.id));
+      const warnIdx = new Array(rounds.length).fill(false);
+      let streak = 0;
+      sat.forEach((isSitting, i)=>{
+        if(isSitting){
+          streak++;
+          if(streak>=2){ warnIdx[i] = true; warnIdx[i-1] = true; }
+        } else {
+          streak = 0;
+        }
+      });
+
+      const isFixedPlayer = session.fixedPairMap[p.id]!==undefined;
+      const nameCls = isFixedPlayer ? ' class="sticky-col fixed-name"' : ' class="sticky-col"';
+      html += `<tr><td${nameCls}>${escapeHtml(p.name)}</td>`;
+      cumulativeLog.forEach((snap,i)=>{
+        const roundNum = i+1;
+        const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
+          && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
+        const repeatKey = repeatPlayersByRound[i].get(p.id);
+        const classes = [];
+        if(warnIdx[i]) classes.push('rest-warn');
+        else if(repeatKey!==undefined) classes.push('partner-repeat-warn', `repeat-color-${pairColorIndex[repeatKey]}`);
+        if(isCheckpoint) classes.push('checkpoint-col');
+        const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+        html += `<td${cls}>${snap[p.id]}</td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>
+    </div>`;
+  }
+
+  // -- all matches, every round, scrollable list --
+  html += `<div class="card" style="margin-top:14px;">
+    <h3 style="margin-top:0; font-size:15px;">Semua Match</h3>`;
+  let matchNo = 0;
+  rounds.forEach((round, r)=>{
+    round.matches.forEach((match, c)=>{
+      matchNo++;
+      const [teamA, teamB] = match;
+      const sc = matchScores[`${r}_${c}`];
+      const valA = sc && sc.A!==null ? String(sc.A).padStart(2,'0') : '00';
+      const valB = sc && sc.B!==null ? String(sc.B).padStart(2,'0') : '00';
+
+      html += `<div class="all-match-item">
+        <div class="all-match-tag">Round ${r+1} · Lapangan ${c+1}</div>
+        <div class="score-row" style="padding:10px 0;">
+          <div class="score-box compact-sm">${valA}</div>
+          <div class="vs-label">VS</div>
+          <div class="score-box compact-sm">${valB}</div>
+        </div>
+        <div class="teams-row" style="padding:0 0 10px;">
+          <div class="team-col${isFixedTeam(teamA) ? ' fixed-team' : ''}">
+            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamA[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[0]))}</span></div>
+            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamA[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamA[1]))}</span></div>
+          </div>
+          <div class="team-col${isFixedTeam(teamB) ? ' fixed-team' : ''}">
+            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamB[0]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[0]))}</span></div>
+            <div class="player-row" onclick="openPlayerSwapModal(${r},${teamB[1]})">${avatarSvg()}<span>${escapeHtml(nameOf(teamB[1]))}</span></div>
+          </div>
+        </div>
+      </div>`;
+    });
+  });
+  html += `</div>`;
+
+  return html;
+}
+
+
+
+
+loadPadelDb();
+renderPlayers();
+updateScoreFormatInfo();
+
+
+// ==================== INTEGRASI: Padel Scheduler -> Match History ====================
+function openPadelApp(){
+  document.getElementById('appPage').classList.add('hidden');
+  document.getElementById('padelApp').classList.remove('hidden');
+  const label = document.getElementById('padelSessionTitleLabel');
+  if(label) label.textContent = activeSessionTitle() ? `📋 ${activeSessionTitle()}` : '';
+}
+function closePadelApp(){
+  document.getElementById('padelApp').classList.add('hidden');
+  document.getElementById('appPage').classList.remove('hidden');
+  renderHistory();
+  renderPadelSessionList();
+}
+
+// Called every time a score is entered/changed in the Padel Scheduler.
+// For each player in the match, if their name matches a registered
+// Match History username (case-insensitive), the result gets
+// automatically added (or updated, if the score changes later) in that
+// user's history — no manual entry needed.
+function syncPadelScoreToHistory(r, c){
+  if(!currentSession) return;
+  const round = currentSession.rounds[r];
+  if(!round) return;
+  const match = round.matches[c];
+  if(!match) return;
+  const key = r+'_'+c;
+  const sc = matchScores[key];
+  if(!sc || sc.A===null || sc.B===null) return;
+  const [teamA, teamB] = match;
+  const matchId = 'padel_'+r+'_'+c;
+  const today = new Date().toISOString().slice(0,10);
+
+  function upsertForTeam(team, opponentTeam, scoreUs, scoreThem){
+    team.forEach(pid=>{
+      const name = nameOf(pid);
+      const matchedUsername = Object.keys(db.users).find(u=>u.toLowerCase()===String(name).toLowerCase());
+      if(!matchedUsername) return;
+      const opponentNames = opponentTeam.map(oid=>nameOf(oid)).join(' & ');
+      const result = scoreUs>scoreThem ? 'win' : (scoreUs<scoreThem ? 'lose' : 'draw');
+      if(!db.history[matchedUsername]) db.history[matchedUsername] = [];
+      const existingIdx = db.history[matchedUsername].findIndex(m=>m.matchId===matchId);
+      const entry = {
+        id: existingIdx>=0 ? db.history[matchedUsername][existingIdx].id : (Date.now()+Math.random()),
+        matchId, date: today, opponent: opponentNames,
+        scoreUs, scoreThem, result,
+        notes: (activeSessionTitle() ? activeSessionTitle()+' — ' : '')+'Round '+(r+1)+', Lapangan '+(c+1)
+      };
+      if(existingIdx>=0) db.history[matchedUsername][existingIdx] = entry;
+      else db.history[matchedUsername].push(entry);
+    });
+  }
+
+  upsertForTeam(teamA, teamB, sc.A, sc.B);
+  upsertForTeam(teamB, teamA, sc.B, sc.A);
+  saveDb();
+}
+
+</script>
+</body>
+</html>
