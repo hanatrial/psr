@@ -8,7 +8,10 @@
 <link rel="manifest" href="manifest-padel.json">
 <link rel="icon" href="icon-padel-192.png?v=2">
 <link rel="apple-touch-icon" href="icon-padel-192.png?v=2">
-<meta name="theme-color" content="#1f4e8c">
+<meta name="theme-color" content="#0B1F4B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Padel">
@@ -351,6 +354,84 @@
      down. Removed the blanket width:100% from .btn below — each button
      that actually wants full width gets it via an explicit style instead. */
 
+
+/* ==================== TEMA OLAHRAGA (navy + lime) ==================== */
+  :root{
+    --navy:#0B1F4B; --navy2:#173A7A; --lime:#C6F432; --lime2:#A3D317;
+    --bg:#EAF0FA; --border:#D9E3F4; --chip:#E1EAFA; --text:#0B1226; --muted:#5A6B8D;
+  }
+  body{ font-family:'Barlow',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); }
+  h1, .board-title, .modal-title, .court-header, .all-match-tag, .stat-box .num, .board-head,
+  .score-box, .vs-label, .btn, .live-tag, .rest-round, .board-rank, .board-name, .board-wlt, .board-diff, .board-pts,
+  .modal-grid button, #roundIndicator{
+    font-family:'Barlow Condensed','Arial Narrow',Impact,'Segoe UI',sans-serif;
+  }
+  h1{ font-size:36px; font-weight:800; line-height:1; text-transform:uppercase; letter-spacing:.01em; color:var(--navy); margin:6px 0 6px; }
+  #authPage > h1, #pageSetup > h1, #viewerRoot > h1{
+    color:#fff; padding:26px 92px 36px 20px; margin:0 0 14px; border-radius:24px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle at 90% 34%, var(--lime) 0 30px, transparent 31px),
+      radial-gradient(circle at 90% 34%, rgba(255,255,255,.14) 0 48px, transparent 49px),
+      linear-gradient(135deg, var(--navy), var(--navy2));
+  }
+  #authPage > h1::after, #pageSetup > h1::after, #viewerRoot > h1::after{
+    content:''; position:absolute; left:20px; bottom:16px; width:64px; height:5px; border-radius:3px; background:var(--lime);
+  }
+  p.sub{ color:var(--muted); }
+  #padelSessionTitleLabel, #padelSessionTitleLabel2{ color:var(--navy2) !important; text-transform:uppercase; letter-spacing:.05em; font-size:13px; }
+  .card{ border-radius:22px; border:1px solid var(--border); box-shadow:0 8px 24px rgba(11,31,75,.06); }
+  label{ color:var(--navy2); font-weight:700; text-transform:uppercase; letter-spacing:.06em; font-size:12px; }
+  input[type=number], input[type=text], input[type=password], input[type=date], select, textarea{
+    background:#F4F7FD; border:1.5px solid var(--border); border-radius:14px;
+  }
+  input:focus, select:focus, textarea:focus{ border-color:var(--navy2); box-shadow:0 0 0 3px rgba(23,58,122,.14); outline:none; }
+  .btn{
+    background:var(--lime); color:var(--navy); border-radius:999px; font-weight:800; font-size:18px;
+    letter-spacing:.05em; text-transform:uppercase; padding:11px 22px; box-shadow:0 3px 0 var(--lime2);
+    transition:transform .08s, box-shadow .08s;
+  }
+  .btn:active{ transform:translateY(2px); box-shadow:0 1px 0 var(--lime2); }
+  .btn.secondary{ background:#fff; color:var(--navy); border:2px solid var(--navy); box-shadow:none; padding:9px 20px; }
+  .btn.danger{ background:transparent; box-shadow:none; border:none; }
+  .btn.small{ font-size:15px; padding:6px 14px; }
+  .link{ color:var(--navy2); }
+  .chip{ background:var(--chip); color:var(--navy); font-weight:700; }
+  .topbar{ background:linear-gradient(135deg,var(--navy),var(--navy2)); color:#fff; border-radius:22px; padding:14px 16px; margin-bottom:14px; }
+  .topbar .user span{ color:#b9c8ea; }
+  .topbar .btn.secondary{ background:transparent; color:#fff; border-color:rgba(255,255,255,.55); }
+  .stat-box{ border-radius:20px; border:1px solid var(--border); box-shadow:0 8px 24px rgba(11,31,75,.06); }
+  .stat-box .num{ font-size:40px; font-weight:800; color:var(--navy); line-height:1; }
+  .stat-box .label{ text-transform:uppercase; letter-spacing:.06em; }
+  .history-item{ border-radius:20px; box-shadow:0 6px 18px rgba(11,31,75,.05); }
+  .court-header{ background:linear-gradient(135deg,var(--navy),var(--navy2)); font-size:22px; letter-spacing:.06em; text-transform:uppercase; }
+  .match-card{ border-radius:24px; box-shadow:0 8px 24px rgba(11,31,75,.08); }
+  .score-box{ font-size:56px; font-weight:800; background:#F1F5FC; border-radius:18px; }
+  .score-box.filled{ background:var(--navy); color:var(--lime); border-color:var(--navy); }
+  .team-col{ background:#F1F5FC; border-radius:16px; }
+  .team-col.fixed-team{ background:#E5E7EB; }
+  .vs-label{ font-size:24px; color:var(--navy2); }
+  .all-match-tag{ font-size:22px; color:var(--navy); }
+  .all-match-item{ border-radius:20px; }
+  .modal-title{ font-size:24px; text-transform:uppercase; color:var(--navy); }
+  .modal-box{ border-radius:26px 26px 0 0; }
+  .modal-grid button{ font-size:26px; font-weight:800; border-radius:16px; }
+  .modal-grid button:active{ background:var(--lime); color:var(--navy); }
+  .board-title{ font-size:40px; text-transform:uppercase; color:var(--navy); }
+  .board-head{ background:var(--navy); color:#fff; border-radius:18px; text-transform:uppercase; letter-spacing:.08em; font-size:15px; }
+  .board-row{ border-radius:18px; }
+  .board-row.tier-green{ background:#EEFAC4; }
+  .board-row.tier-purple{ background:#E1EAFA; }
+  .board-rank, .board-name, .board-wlt, .board-diff, .board-pts{ font-size:21px; }
+  .board-wlt{ white-space:nowrap; font-size:19px; flex:1.35; }
+  .board-head .c-wlt{ flex:1.35; }
+  .board-head .c-name, .board-name{ flex:2; }
+  .btn.danger{ font-size:15px; padding:4px 8px; }
+  .btn-row .btn.secondary{ font-size:16px; padding:8px 14px; }
+  .progress-table th{ text-transform:uppercase; letter-spacing:.04em; }
+  .rest-round{ font-size:14px; letter-spacing:.08em; }
+  .round-group{ border-radius:24px; }
+  .card h3{ font-family:'Barlow Condensed','Arial Narrow',sans-serif; text-transform:uppercase; letter-spacing:.03em; font-size:24px !important; color:var(--navy); line-height:1.05; }
+  #roundIndicator{ font-size:32px !important; text-transform:uppercase; color:var(--navy); line-height:1; letter-spacing:.02em; }
 </style>
 </head>
 <body>
@@ -2827,7 +2908,7 @@ async function bootViewer(){
   ['authPage', 'appPage', 'padelApp'].forEach(id => document.getElementById(id).classList.add('hidden'));
   const root = document.createElement('div');
   root.id = 'viewerRoot';
-  root.innerHTML = '<div id="viewerStatus" class="info" style="text-align:center;margin:10px 0;">Memuat…</div><div id="viewerBody"></div>';
+  root.innerHTML = '<h1>Padel Live</h1><div id="viewerStatus" class="info" style="text-align:center;margin:10px 0;">Memuat…</div><div id="viewerBody"></div>';
   document.body.appendChild(root);
   const status = document.getElementById('viewerStatus');
   const body = document.getElementById('viewerBody');
@@ -2885,28 +2966,28 @@ function updateInstallGate(){
   if(!g){
     g = document.createElement('div');
     g.id = 'installGate';
-    g.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#f9fbfa;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;gap:12px;overflow:auto;font-family:inherit;color:#1a1d29';
+    g.style.cssText = 'position:fixed;inset:0;z-index:99999;background:linear-gradient(160deg,#0B1F4B,#173A7A);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;gap:12px;overflow:auto;font-family:inherit;color:#fff';
     document.body.appendChild(g);
     document.body.style.overflow = 'hidden';
   }
-  const btnCss = 'margin-top:6px;padding:14px 28px;border:none;border-radius:12px;background:#1f4e8c;color:#fff;font-size:16px;font-weight:700;cursor:pointer';
+  const btnCss = 'margin-top:8px;padding:14px 36px;border:none;border-radius:999px;background:#C6F432;color:#0B1F4B;font-size:22px;font-weight:800;font-family:"Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 0 #A3D317';
   let body;
   if(installedJustNow){
-    body = '<p style="font-size:16px;margin:0;">✅ Aplikasi sudah terpasang.</p><p style="margin:0;color:#6b7280;">Tutup halaman ini, lalu buka <b>Padel</b> dari layar utama HP kamu.</p>';
+    body = '<p style="font-size:16px;margin:0;">✅ Aplikasi sudah terpasang.</p><p style="margin:0;color:#B9C8EA;">Tutup halaman ini, lalu buka <b>Padel</b> dari layar utama HP kamu.</p>';
   } else if(inAppBrowser()){
-    body = '<p style="margin:0;color:#6b7280;">Link ini terbuka di browser bawaan aplikasi lain, jadi belum bisa dipasang.</p><p style="margin:0;"><b>Buka link ini di ' + (isIosDevice() ? 'Safari' : 'Chrome') + '</b> (menu ⋮ atau tombol bagikan → “Buka di browser”), lalu install.</p>';
+    body = '<p style="margin:0;color:#B9C8EA;">Link ini terbuka di browser bawaan aplikasi lain, jadi belum bisa dipasang.</p><p style="margin:0;"><b>Buka link ini di ' + (isIosDevice() ? 'Safari' : 'Chrome') + '</b> (menu ⋮ atau tombol bagikan → “Buka di browser”), lalu install.</p>';
   } else if(isIosDevice()){
-    body = '<p style="margin:0;color:#6b7280;">Cara install di iPhone/iPad (pakai Safari):</p><ol style="text-align:left;margin:4px 0;padding-left:22px;line-height:1.7;"><li>Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas)</li><li>Pilih <b>Tambahkan ke Layar Utama</b></li><li>Ketuk <b>Tambah</b>, lalu buka <b>Padel</b> dari layar utama</li></ol>';
+    body = '<p style="margin:0;color:#B9C8EA;">Cara install di iPhone/iPad (pakai Safari):</p><ol style="text-align:left;margin:4px 0;padding-left:22px;line-height:1.7;"><li>Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas)</li><li>Pilih <b>Tambahkan ke Layar Utama</b></li><li>Ketuk <b>Tambah</b>, lalu buka <b>Padel</b> dari layar utama</li></ol>';
   } else if(deferredInstallPrompt){
     body = '<button id="installBtn" style="' + btnCss + '">Install aplikasi</button>';
   } else {
-    body = '<p style="margin:0;color:#6b7280;">Cara install di Android (pakai Chrome):</p><ol style="text-align:left;margin:4px 0;padding-left:22px;line-height:1.7;"><li>Ketuk menu <b>⋮</b> di pojok kanan atas</li><li>Pilih <b>Instal aplikasi</b> / <b>Tambahkan ke layar utama</b></li><li>Buka <b>Padel</b> dari layar utama</li></ol>';
+    body = '<p style="margin:0;color:#B9C8EA;">Cara install di Android (pakai Chrome):</p><ol style="text-align:left;margin:4px 0;padding-left:22px;line-height:1.7;"><li>Ketuk menu <b>⋮</b> di pojok kanan atas</li><li>Pilih <b>Instal aplikasi</b> / <b>Tambahkan ke layar utama</b></li><li>Buka <b>Padel</b> dari layar utama</li></ol>';
   }
   g.innerHTML = '<img src="icon-padel-192.png?v=2" alt="" style="width:96px;height:96px;border-radius:22px;">'
-    + '<h2 style="margin:6px 0 0;font-size:22px;">Install aplikasi Padel dulu</h2>'
-    + '<p style="margin:0;color:#6b7280;max-width:320px;">Untuk memakai Padel, aplikasinya harus dipasang di HP kamu terlebih dahulu.</p>'
+    + '<h2 style="margin:6px 0 0;font-size:36px;line-height:1;font-family:\'Barlow Condensed\',\'Arial Narrow\',sans-serif;font-weight:800;text-transform:uppercase;color:#fff;">Install aplikasi Padel dulu</h2>'
+    + '<p style="margin:0;color:#B9C8EA;max-width:320px;">Untuk memakai Padel, aplikasinya harus dipasang di HP kamu terlebih dahulu.</p>'
     + body
-    + (installedJustNow ? '' : '<p style="margin:10px 0 0;font-size:12px;color:#9ca3af;max-width:320px;">Sudah pernah install? Buka lewat ikon <b>Padel</b> di layar utama HP kamu.</p>');
+    + (installedJustNow ? '' : '<p style="margin:10px 0 0;font-size:12px;color:#8FA2CC;max-width:320px;">Sudah pernah install? Buka lewat ikon <b>Padel</b> di layar utama HP kamu.</p>');
   const b = document.getElementById('installBtn');
   if(b) b.onclick = doInstall;
 }
