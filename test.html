@@ -1307,6 +1307,12 @@ function bestTeamPairing(teams, opponentCount, fixedClashPairs, currentRoundNum,
 
 // Round cadangan di luar jam sewa yang ikut dibuat / ditampilkan.
 const ROUND_BUFFER = 4;
+// Round terakhir sesuai jam sewa (checkpoint terakhir), tanpa round cadangan.
+function checkpointRoundCap(session){
+  const total = session.rounds.length;
+  if(!(session.roundsPerHour>0 && session.totalHours>0)) return total;
+  return Math.min(total, Math.round(session.roundsPerHour*session.totalHours));
+}
 // Batas round yang ditampilkan di link live: jam sewa + cadangan, kecuali host sudah menambah round sendiri.
 function viewRoundCap(session){
   const total = session.rounds.length;
@@ -2426,14 +2432,14 @@ function buildSummaryHtml(session){
   html += `<div class="card" style="margin-top:14px;">
     <h3 style="margin-top:0; font-size:15px;">Semua Match</h3>`;
   // Link live: hanya tampilkan sampai batas checkpoint (jam sewa), dan bisa dipersempit ke match milik pemain terpilih
-  const capRounds = VIEW_ONLY ? viewRoundCap(session) : rounds.length;
   const onlyMine = VIEW_ONLY && viewerOnlyMine && HIGHLIGHT_PID!==null;
+  const capRounds = !VIEW_ONLY ? rounds.length : (onlyMine ? checkpointRoundCap(session) : viewRoundCap(session));
   if(VIEW_ONLY){
     if(HIGHLIGHT_PID!==null){
       html += `<label class="only-mine"><input type="checkbox" ${viewerOnlyMine ? 'checked' : ''} onchange="toggleOnlyMine(this.checked)"> Tampilkan match saya saja</label>`;
     }
     if(capRounds < rounds.length){
-      html += `<div class="info" style="margin:0 0 10px;">Ditampilkan sampai round ${capRounds} (jam sewa + ${ROUND_BUFFER} round cadangan)</div>`;
+      html += `<div class="info" style="margin:0 0 10px;">Ditampilkan sampai round ${capRounds} (${onlyMine ? 'checkpoint terakhir' : 'jam sewa + ' + ROUND_BUFFER + ' round cadangan'})</div>`;
     }
   }
   let matchNo = 0;
