@@ -201,6 +201,10 @@
   .progress-table tr.my-row td{ border-top:2px solid #facc15 !important; border-bottom:2px solid #facc15 !important; }
   .progress-table tr.my-row td:first-child{ border-left:2px solid #facc15 !important; }
   .progress-table tr.my-row td:last-child{ border-right:2px solid #facc15 !important; }
+  .team-col.fixed-team{ background:#e5e7eb; }
+  .round-group.live-round{ border-color:#facc15; background:#fffbeb; }
+  .live-tag{ text-align:center; font-size:11px; font-weight:800; color:#a16207; margin:2px 0 6px; }
+  .progress-table th.live-col{ background:#fef3c7; color:#a16207; box-shadow:inset 0 -3px 0 #facc15; }
   .team-col.winner{ position:relative; box-shadow:inset 0 0 0 2px #facc15; }
   .team-col .trophy{ position:absolute; top:6px; right:8px; font-size:13px; line-height:1; }
   .player-row{ display:flex; align-items:center; gap:10px; padding:6px 0; font-weight:600; font-size:15px; cursor:pointer; border-radius:8px; }
@@ -223,9 +227,10 @@
   }
   .all-match-title{ font-weight:800; font-size:16px; margin-bottom:2px; }
   .score-box.compact-sm{ padding:14px 0; font-size:28px; border-radius:12px; max-width:100px; }
+  .refresh-row{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 8px; }
   .all-match-tag{
-    display:inline-block; background:var(--chip); color:var(--text); font-weight:700;
-    font-size:13px; padding:4px 12px; border-radius:999px; margin-bottom:6px;
+    display:block; text-align:center; color:#1a1d29; font-weight:800; font-size:17px;
+    letter-spacing:.02em; text-transform:uppercase; padding:2px 0 0; margin-bottom:4px;
   }
   .modal-overlay{
     position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:flex-end;
@@ -310,27 +315,24 @@
     box-shadow:1px 0 0 var(--border);
   }
   .progress-table td.play-streak{
-    color:#15803d; font-weight:800; background:#dcfce7;
-  }
-  .progress-table td.rest-warn{
-    color:#dc2626; font-weight:800; background:#fee2e2;
-  }
-  .progress-table td.partner-repeat-warn{
-    color:#92400e; font-weight:800; background:#fef3c7;
-  }
-  .progress-table td.repeat-color-0{ background:#fef3c7; color:#92400e; }
-  .progress-table td.repeat-color-1{ background:#dbeafe; color:#1e40af; }
-  .progress-table td.repeat-color-2{ background:#fce7f3; color:#9d174d; }
-  .progress-table td.repeat-color-3{ background:#ede9fe; color:#5b21b6; }
-  .progress-table td.repeat-color-4{ background:#d1fae5; color:#065f46; }
-  .progress-table td.repeat-color-5{ background:#ffedd5; color:#9a3412; }
-  .progress-table td.repeat-color-6{ background:#e0f2fe; color:#075985; }
-  .progress-table td.repeat-color-7{ background:#fee2e2; color:#991b1b; }
-  .progress-table .sticky-col.fixed-name{
     color:#15803d; background:#dcfce7;
   }
+  .progress-table td.rest-warn{
+    color:#dc2626; background:#fee2e2;
+  }
+  .progress-table .rp{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:22px; height:22px; padding:0 4px; border-radius:999px; box-sizing:border-box;
+  }
+  .progress-table .rp-0{ background:#5eead4; color:#115e59; }
+  .progress-table .rp-1{ background:#7dd3fc; color:#075985; }
+  .progress-table .rp-2{ background:#a5b4fc; color:#3730a3; }
+  .progress-table .rp-3{ background:#f0abfc; color:#86198f; }
+  .progress-table .sticky-col.fixed-name{
+    color:#4b5563; background:#e5e7eb;
+  }
   .progress-table th.checkpoint-col{
-    background:var(--chip); border-left:2px solid var(--accent); border-right:2px solid var(--accent);
+    border-left:2px solid var(--accent); border-right:2px solid var(--accent);
   }
   .progress-table .checkpoint-tag{
     font-size:10px; font-weight:700; color:var(--accent);
@@ -1055,8 +1057,11 @@ function bestMatchingForSingles(singleIds, partnerCount, requiredPairs, coveredP
     // it with nobody
     return greedyMinRepeatMatching(singleIds.slice(0,-1), partnerCount);
   }
-  if(singleIds.length>12){
+  if(singleIds.length>18){
     return greedyMinRepeatMatching(singleIds, partnerCount);
+  }
+  if(singleIds.length>12){
+    return optimalMatchingDP(singleIds, partnerCount, requiredPairs, coveredPairs, preferCoverage);
   }
   const matchings = generateMatchingsFast(singleIds);
   let bestScore = -Infinity;
@@ -1073,6 +1078,51 @@ function bestMatchingForSingles(singleIds, partnerCount, requiredPairs, coveredP
     else if(score === bestScore){ bestOnes.push(m); }
   });
   return bestOnes[Math.floor(Math.random()*bestOnes.length)];
+}
+
+// Susunan tim terbaik untuk 13-18 pemain bebas dengan tujuan yang sama seperti versi
+// menyeluruh di atas (utamakan pasangan baru, lalu minimalkan pasangan berulang),
+// tapi lewat DP bitmask sehingga tetap cepat (tidak menyebutkan semua susunan).
+function optimalMatchingDP(ids, partnerCount, requiredPairs, coveredPairs, preferCoverage){
+  const n = ids.length;
+  const s = [];
+  for(let i=0;i<n;i++){
+    s.push(new Array(n).fill(0));
+  }
+  for(let i=0;i<n;i++){
+    for(let j=i+1;j<n;j++){
+      const key = pairKey(ids[i], ids[j]);
+      const isNew = preferCoverage && requiredPairs.has(key) && !coveredPairs.has(key);
+      // jitter kecil (<1 total) hanya untuk memilih acak di antara susunan yang setara
+      s[i][j] = s[j][i] = (isNew ? 1000 : 0) - (partnerCount[key]||0) + Math.random()*0.1;
+    }
+  }
+  const size = 1<<n;
+  const full = size - 1;
+  const f = new Float64Array(size).fill(-Infinity);
+  const pi = new Int8Array(size).fill(-1);
+  const pj = new Int8Array(size).fill(-1);
+  f[0] = 0;
+  for(let mask=0; mask<full; mask++){
+    const cur = f[mask];
+    if(cur === -Infinity) continue;
+    let i = 0;
+    while(mask & (1<<i)) i++;
+    for(let j=i+1;j<n;j++){
+      if(mask & (1<<j)) continue;
+      const nm = mask | (1<<i) | (1<<j);
+      const v = cur + s[i][j];
+      if(v > f[nm]){ f[nm] = v; pi[nm] = i; pj[nm] = j; }
+    }
+  }
+  const result = [];
+  let m = full;
+  while(m){
+    const i = pi[m], j = pj[m];
+    result.push([ids[i], ids[j]]);
+    m ^= (1<<i) | (1<<j);
+  }
+  return result;
 }
 
 function makeSession(){
@@ -1250,6 +1300,17 @@ function bestTeamPairing(teams, opponentCount, fixedClashPairs, currentRoundNum,
   return matches;
 }
 
+// Aturan: maksimal 2 round main berturut-turut, setelah itu wajib istirahat.
+const MAX_PLAY_STREAK = 2;
+function trailingPlayStreak(session, id){
+  let n = 0;
+  for(let i = session.rounds.length - 1; i >= 0; i--){
+    if(session.rounds[i].sitting.includes(id)) break;
+    n++;
+  }
+  return n;
+}
+
 function buildOneRound(session){
   const { gamesPlayed, restStreak, partnerCount, opponentCount, fixedPairMap, freeIds, requiredPairs, coveredPairs, fixedClashPairs, perRoundPlaying, roundMode } = session;
 
@@ -1322,33 +1383,50 @@ function buildOneRound(session){
     return a.jitter - b.jitter;
   });
 
-  let capacity = perRoundPlaying;
-  const selected = [];
-  const sittingUnits = [];
-  for(const u of units){
-    if(u.size<=capacity){ selected.push(u); capacity -= u.size; }
-    else sittingUnits.push(u);
-  }
-  units.forEach(u=>{ if(!selected.includes(u) && !sittingUnits.includes(u)) sittingUnits.push(u); });
+  // Sudah main ${MAX_PLAY_STREAK} round berturut-turut -> wajib istirahat round ini.
+  // Aturan ini hanya dipaksakan kalau masih ada cukup pemain lain untuk mengisi
+  // semua lapangan (mis. 1 lapangan butuh minimal 6 pemain, 2 lapangan minimal 12);
+  // kalau tidak cukup, dilonggarkan supaya round tetap bisa terbentuk.
+  units.forEach(u=>{
+    u.mustRest = u.members.some(id=> trailingPlayStreak(session, id) >= MAX_PLAY_STREAK);
+  });
+  const restableSeats = units.filter(u=>!u.mustRest).reduce((s,u)=>s+u.size, 0);
+  let enforceRest = restableSeats >= perRoundPlaying;
+  const canPlay = u => !(enforceRest && u.mustRest);
 
-  // With only size-1 (free single) and size-2 (fixed pair) units, greedy
-  // fill can leave exactly 1 slot unfillable — a size-2 unit was skipped
-  // for lack of room even though swapping out one already-picked single
-  // would free enough room for it. Left unfixed, this shorts the round by
-  // one player and corrupts team formation (a stray unpaired single). Fix
-  // it by demoting the lowest-priority selected single to make room.
-  while(capacity===1){
-    const skippedPair = sittingUnits.find(u=>u.size===2);
-    if(!skippedPair) break;
-    const selectedSingles = selected.filter(u=>u.size===1);
-    if(selectedSingles.length===0) break;
-    const demote = selectedSingles[selectedSingles.length-1];
-    selected.splice(selected.indexOf(demote), 1);
-    sittingUnits.push(demote);
-    sittingUnits.splice(sittingUnits.indexOf(skippedPair), 1);
-    selected.push(skippedPair);
-    capacity = capacity + demote.size - skippedPair.size;
+  let capacity, selected, sittingUnits;
+  function pickUnits(){
+    capacity = perRoundPlaying;
+    selected = [];
+    sittingUnits = [];
+    for(const u of units){
+      if(!canPlay(u)){ sittingUnits.push(u); continue; }
+      if(u.size<=capacity){ selected.push(u); capacity -= u.size; }
+      else sittingUnits.push(u);
+    }
+    units.forEach(u=>{ if(!selected.includes(u) && !sittingUnits.includes(u)) sittingUnits.push(u); });
+
+    // With only size-1 (free single) and size-2 (fixed pair) units, greedy
+    // fill can leave exactly 1 slot unfillable — a size-2 unit was skipped
+    // for lack of room even though swapping out one already-picked single
+    // would free enough room for it. Left unfixed, this shorts the round by
+    // one player and corrupts team formation (a stray unpaired single). Fix
+    // it by demoting the lowest-priority selected single to make room.
+    while(capacity===1){
+      const skippedPair = sittingUnits.find(u=>u.size===2 && canPlay(u));
+      if(!skippedPair) break;
+      const selectedSingles = selected.filter(u=>u.size===1);
+      if(selectedSingles.length===0) break;
+      const demote = selectedSingles[selectedSingles.length-1];
+      selected.splice(selected.indexOf(demote), 1);
+      sittingUnits.push(demote);
+      sittingUnits.splice(sittingUnits.indexOf(skippedPair), 1);
+      selected.push(skippedPair);
+      capacity = capacity + demote.size - skippedPair.size;
+    }
   }
+  pickUnits();
+  if(enforceRest && capacity!==0){ enforceRest = false; pickUnits(); } // tidak bisa penuh -> longgarkan
 
   // Total planned rounds / "is this a protected checkpoint" — computed
   // once here so both the fixed-pair capacity logic below and the partner
@@ -1379,7 +1457,7 @@ function buildOneRound(session){
   if(isLastPlannedRound && fixedPairs.length>1){
     const globalMinGames = Math.min(...players.map(p=>gamesPlayed[p.id]));
     const minTiedFixedSitting = units.filter(u=>{
-      if(u.size!==2 || !sittingUnits.includes(u)) return false;
+      if(u.size!==2 || !sittingUnits.includes(u) || !canPlay(u)) return false;
       const avg = u.members.reduce((s,id)=>s+gamesPlayed[id],0)/u.members.length;
       return avg===globalMinGames;
     });
@@ -1444,7 +1522,7 @@ function buildOneRound(session){
           return avg > currentGlobalMin;
         });
       }
-      const sittingFreeUnits = sittingUnits.filter(u=>u.size===1);
+      const sittingFreeUnits = sittingUnits.filter(u=>u.size===1 && canPlay(u));
       // games-played fairness (constraint #2) outranks clash-avoidance
       // (constraint #5) — don't force this swap if the free players it
       // would pull in are already worse off (more games played) than the
@@ -1478,7 +1556,7 @@ function buildOneRound(session){
     const selSingleUnits0 = selected.filter(u=>u.size===1);
     if(selSingleUnits0.length>=2){
       let currentUnits = selSingleUnits0.slice();
-      let pool = sittingUnits.filter(u=>u.size===1);
+      let pool = sittingUnits.filter(u=>u.size===1 && canPlay(u));
       // don't let the coverage hill-climb pull anyone currently at the very
       // lowest games-played count out of the lineup — that's specifically
       // what widens the fairness gap. Swaps among everyone else are fine.
@@ -1568,6 +1646,7 @@ function buildOneRound(session){
   });
 
   const singleTeams = bestMatchingForSingles(singles, partnerCount, requiredPairs, coveredPairs, roundMode==='auto');
+
   singleTeams.forEach(t=> teams.push(t));
 
   teams.sort(()=>Math.random()-0.5);
@@ -1616,17 +1695,19 @@ let currentSession = null;
 let currentRoundIndex = 0;
 let summaryVisible = false;
 
-function generate(){
+// Membuat satu jadwal lengkap dari setup saat ini (tanpa menyentuh tampilan).
+// Mengembalikan null (dan mengisi pesan error) kalau setup belum valid.
+function createSchedule(){
   const errorEl = document.getElementById('errorMsg');
   errorEl.textContent = '';
   const courtsCount = parseInt(document.getElementById('courts').value);
   const perRoundPlaying = courtsCount*4;
   const SAFETY_CAP = 200;
 
-  if(!courtsCount || courtsCount<1){ errorEl.textContent='Jumlah lapangan minimal 1.'; return; }
+  if(!courtsCount || courtsCount<1){ errorEl.textContent='Jumlah lapangan minimal 1.'; return null; }
   if(players.length < perRoundPlaying){
     errorEl.textContent = `Pemain kurang. Butuh minimal ${perRoundPlaying} pemain untuk ${courtsCount} lapangan.`;
-    return;
+    return null;
   }
 
   const session = makeSession();
@@ -1648,14 +1729,115 @@ function generate(){
   session.plannedTotalRounds = howMany;
 
   for(let r=0; r<howMany; r++){ buildOneRound(session); }
+  return session;
+}
+
+function generate(){
+  const session = createSchedule();
+  if(!session) return;
 
   currentSession = session;
+  scheduleBackup = null;
+  lastPick = null;
   matchScores = {};
   currentRoundIndex = 0;
   summaryVisible = false;
   document.getElementById('resumeBtn').classList.remove('hidden');
   showRoundPageOnly();
   saveState();
+}
+
+// ---- Refresh jadwal: buat beberapa kemungkinan, pilih yang terbaik ----
+// Skor jadwal (makin kecil makin bagus), dihitung untuk round yang benar-benar dipakai
+// (durasi sewa) — atau seluruh jadwal kalau jam sewa tidak diisi.
+function scoreSchedule(session){
+  const rounds = session.rounds;
+  const W = (session.roundsPerHour>0 && session.totalHours>0)
+    ? Math.min(rounds.length, Math.round(session.roundsPerHour*session.totalHours))
+    : rounds.length;
+  const seen = new Set();
+  let repeats = 0;
+  for(let r=0;r<W;r++){
+    rounds[r].matches.forEach(match=>{
+      match.forEach(team=>{
+        if(session.fixedPairMap[team[0]]===team[1]) return; // pasangan tetap tidak dihitung
+        const k = pairKey(team[0], team[1]);
+        if(seen.has(k)) repeats++; else seen.add(k);
+      });
+    });
+  }
+  let waits = 0, playOver = 0;
+  players.forEach(p=>{
+    let rest = 0, play = 0;
+    for(let r=0;r<W;r++){
+      if(rounds[r].sitting.includes(p.id)){
+        rest++; play = 0;
+        if(rest>=2) waits++;
+      } else {
+        play++; rest = 0;
+        if(play>2) playOver++;
+      }
+    }
+  });
+  let gap = 0;
+  for(let r=0;r<W;r++){
+    const vals = Object.values(session.cumulativeLog[r] || {});
+    if(vals.length) gap = Math.max(gap, Math.max(...vals) - Math.min(...vals));
+  }
+  return { cost: repeats*10 + waits*3 + playOver*8 + gap*20, repeats, waits, playOver, gap, window: W, allRounds: W===rounds.length };
+}
+
+let scheduleBackup = null; // jadwal sebelum refresh terakhir (hanya di memori, buat tombol "Kembali")
+let lastPick = null;       // info refresh terakhir
+
+function rerenderAfterScheduleChange(){
+  if(summaryVisible){
+    document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
+  }
+  if(!document.getElementById('pageRound').classList.contains('hidden')) renderRoundPage();
+}
+
+function refreshSchedule(){
+  if(VIEW_ONLY || !currentSession) return;
+  const hasScores = Object.values(matchScores || {}).some(s => s && ((s.A!==null && s.A!==undefined) || (s.B!==null && s.B!==undefined)));
+  const msg = hasScores
+    ? 'Refresh jadwal?\n\nSkor yang sudah diisi AKAN DIHAPUS dan jadwal diganti dengan yang baru.'
+    : 'Refresh jadwal?\n\nJadwal saat ini akan diganti dengan yang baru (bisa dikembalikan lewat tombol "Kembali ke jadwal sebelumnya").';
+  if(!confirm(msg)) return;
+
+  const cur = currentSession;
+  // pakai setup jadwal yang sedang berjalan
+  document.getElementById('courts').value = String(cur.courtsCount);
+  document.getElementById('totalHours').value = cur.totalHours ? String(cur.totalHours) : '';
+
+  const backup = { session: cur, scores: matchScores, roundIndex: currentRoundIndex };
+  let best = null, tries = 0;
+  const t0 = performance.now();
+  while(tries < 12 && (tries < 3 || performance.now() - t0 < 2500)){
+    const s = createSchedule();
+    if(!s) return;
+    const sc = scoreSchedule(s);
+    if(!best || sc.cost < best.sc.cost) best = { s, sc };
+    tries++;
+  }
+  scheduleBackup = backup;
+  currentSession = best.s;
+  matchScores = {};
+  currentRoundIndex = 0;
+  lastPick = { tries };
+  saveState();
+  rerenderAfterScheduleChange();
+}
+
+function undoRefreshSchedule(){
+  if(VIEW_ONLY || !scheduleBackup) return;
+  currentSession = scheduleBackup.session;
+  matchScores = scheduleBackup.scores;
+  currentRoundIndex = scheduleBackup.roundIndex;
+  scheduleBackup = null;
+  lastPick = null;
+  saveState();
+  rerenderAfterScheduleChange();
 }
 
 function showRoundPageOnly(){
@@ -2060,6 +2242,17 @@ function buildSummaryHtml(session){
   const target = getScoreTarget().target;
   let html = '';
 
+  // Link live: tandai round terakhir yang skornya sudah terisi = round yang sedang berjalan
+  let liveRound = -1;
+  if(VIEW_ONLY){
+    rounds.forEach((rd, r)=>{
+      rd.matches.forEach((m, c)=>{
+        const sc = matchScores[`${r}_${c}`];
+        if(sc && ((sc.A!==null && sc.A!==undefined) || (sc.B!==null && sc.B!==undefined))) liveRound = Math.max(liveRound, r);
+      });
+    });
+  }
+
   // -- score / W-L-T board (always shown; zeros until scores are entered) --
   {
     const stats = computeStats(session);
@@ -2096,19 +2289,60 @@ function buildSummaryHtml(session){
 
   // -- cumulative progress table --
   if(cumulativeLog && cumulativeLog.length>0){
+    let refreshRow = '';
+    if(!VIEW_ONLY){
+      const q = scoreSchedule(session);
+      refreshRow = `<div class="refresh-row">
+          <button type="button" class="btn secondary small" onclick="refreshSchedule()">🔄 Refresh jadwal</button>
+          ${scheduleBackup ? '<button type="button" class="btn secondary small" onclick="undoRefreshSchedule()">↩ Kembali ke jadwal sebelumnya</button>' : ''}
+        </div>
+        <div class="info" style="margin:0 0 10px;">${lastPick ? 'Terbaik dari ' + lastPick.tries + ' kemungkinan · ' : ''}Partner berulang <b>${q.repeats}</b> · Menunggu 2+ round <b>${q.waits}</b> · Selisih main terbesar <b>${q.gap}</b> <span style="color:var(--muted);">(${q.allRounds ? 'seluruh jadwal' : q.window + ' round pertama sesuai jam sewa'})</span></div>`;
+    }
     html += `<div class="card" style="margin-top:14px;">
       <h3 style="margin-top:0; font-size:15px;">Progres Main (kumulatif per round)</h3>
+      ${refreshRow}
       <div class="table-scroll"><table class="progress-table">
         <thead><tr><th class="sticky-col">Pemain</th>`;
     rounds.forEach((_,idx)=>{
       const roundNum = idx+1;
       const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
         && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
+      const liveCol = idx===liveRound ? ' live-col' : '';
       html += isCheckpoint
-        ? `<th class="checkpoint-col">R${roundNum}<br><span class="checkpoint-tag">⏱${roundNum/session.roundsPerHour}j</span></th>`
-        : `<th>R${roundNum}</th>`;
+        ? `<th class="checkpoint-col${liveCol}">R${roundNum}<br><span class="checkpoint-tag">⏱${roundNum/session.roundsPerHour}j</span></th>`
+        : `<th class="${liveCol.trim()}">R${roundNum}</th>`;
     });
     html += `</tr></thead><tbody>`;
+
+    // Pasangan (non-fixed) yang main bareng untuk ke-2 kali dst diwarnai; tiap pasangan
+    // berulang dapat warnanya sendiri dari palet REPEAT_COLORS (sudah divalidasi jauh
+    // dari merah / hijau / abu / kuning / pink yang dipakai di halaman ini).
+    const REPEAT_COLOR_COUNT = 4;
+    const repeatPlayersByRound = rounds.map(()=> new Map()); // playerId -> pairKey
+    const runningPartnerCount = {};
+    const pairColorIndex = {};
+    let nextColorIdx = 0;
+    rounds.forEach((round, r)=>{
+      round.matches.forEach(([teamA, teamB])=>{
+        [teamA, teamB].forEach(team=>{
+          if(isFixedTeam(team)) return;
+          const key = pairKey(team[0], team[1]);
+          runningPartnerCount[key] = (runningPartnerCount[key]||0) + 1;
+          if(runningPartnerCount[key] >= 2){
+            if(pairColorIndex[key]===undefined){
+              pairColorIndex[key] = nextColorIdx % REPEAT_COLOR_COUNT;
+              nextColorIdx++;
+            }
+            team.forEach(id=> repeatPlayersByRound[r].set(id, key));
+          }
+        });
+      });
+    });
+
+    // Hijau "main 2 round berturut-turut" hanya ditampilkan untuk kombinasi 6-10 pemain
+    // per lapangan (1c 6-10p, 2c 12-20p, 3c 18-30p, 4c 24-40p).
+    const nCourts = session.courtsCount;
+    const showPlayStreak = nCourts>0 && players.length >= 6*nCourts && players.length <= 10*nCourts;
 
     players.forEach(p=>{
       // find rounds where this player sat out 2+ times in a row, to flag in red
@@ -2125,33 +2359,43 @@ function buildSummaryHtml(session){
       });
       // main 2 round berturut-turut atau lebih -> hijau
       const playIdx = new Array(rounds.length).fill(false);
-      let playStreak = 0;
-      sat.forEach((isSitting, i)=>{
-        if(!isSitting){
-          playStreak++;
-          if(playStreak>=2){ playIdx[i] = true; playIdx[i-1] = true; }
-        } else {
-          playStreak = 0;
-        }
-      });
+      if(showPlayStreak){
+        let playStreak = 0;
+        sat.forEach((isSitting, i)=>{
+          if(!isSitting){
+            playStreak++;
+            if(playStreak>=2){ playIdx[i] = true; playIdx[i-1] = true; }
+          } else {
+            playStreak = 0;
+          }
+        });
+      }
 
-      html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td class="sticky-col">${escapeHtml(p.name)}</td>`;
+      const isFixedPlayer = session.fixedPairMap[p.id]!==undefined;
+      html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td class="sticky-col${isFixedPlayer ? ' fixed-name' : ''}">${escapeHtml(p.name)}</td>`;
       cumulativeLog.forEach((snap,i)=>{
         const roundNum = i+1;
         const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
           && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
         const classes = [];
+        const repeatKey = repeatPlayersByRound[i].get(p.id);
         if(warnIdx[i]) classes.push('rest-warn');
-        else if(playIdx[i]) classes.push('play-streak');
+        else {
+          if(playIdx[i]) classes.push('play-streak');
+        }
         if(isCheckpoint) classes.push('checkpoint-col');
         const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
-        html += `<td${cls}>${snap[p.id]}</td>`;
+        const num = (repeatKey!==undefined && !warnIdx[i])
+          ? `<span class="rp rp-${pairColorIndex[repeatKey]}">${snap[p.id]}</span>`
+          : snap[p.id];
+        html += `<td${cls}>${num}</td>`;
       });
       html += `</tr>`;
     });
     html += `</tbody></table></div>
       <div class="info" style="margin-top:8px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#fecaca;border:1px solid #dc2626;vertical-align:-1px;"></span> Merah berurutan = menunggu 2 round</div>
-      <div class="info" style="margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#bbf7d0;border:1px solid #15803d;vertical-align:-1px;"></span> Hijau berurutan = main 2 round berturut-turut</div>
+      ${showPlayStreak ? '<div class="info" style="margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#bbf7d0;border:1px solid #15803d;vertical-align:-1px;"></span> Hijau berurutan = main 2 round berturut-turut</div>' : ''}
+      <div class="info" style="margin-top:4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#7dd3fc;vertical-align:-2px;"></span> Lingkaran warna = partner yang sama, untuk ke-2 kali dst</div>
     </div>`;
   }
 
@@ -2160,7 +2404,7 @@ function buildSummaryHtml(session){
     <h3 style="margin-top:0; font-size:15px;">Semua Match</h3>`;
   let matchNo = 0;
   rounds.forEach((round, r)=>{
-    html += `<div class="round-group">`;
+    html += `<div class="round-group${r===liveRound ? ' live-round' : ''}">${r===liveRound ? '<div class="live-tag">● Round berjalan</div>' : ''}`;
     round.matches.forEach((match, c)=>{
       matchNo++;
       const [teamA, teamB] = match;
@@ -2174,7 +2418,7 @@ function buildSummaryHtml(session){
       const me = id => id === HIGHLIGHT_PID ? ' me' : '';
 
       html += `<div class="all-match-item${mine ? ' mine' : ''}">
-        <div class="all-match-tag">Round ${r+1} · Lapangan ${c+1}</div>
+        <div class="all-match-tag">Round ${r+1} - Lapangan ${c+1}</div>
         <div class="score-row" style="padding:10px 0;">
           <div class="score-box compact-sm">${valA}</div>
           <div class="vs-label">VS</div>
