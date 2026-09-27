@@ -836,7 +836,8 @@ function serializeSession(s){
     plannedTotalRounds: s.plannedTotalRounds,
     roundsPerHour: s.roundsPerHour,
     totalHours: s.totalHours,
-    rounds: s.rounds, cumulativeLog: s.cumulativeLog, roundMode: s.roundMode
+    rounds: s.rounds, cumulativeLog: s.cumulativeLog, roundMode: s.roundMode,
+    roundsExtended: s.roundsExtended
   };
 }
 
@@ -1304,6 +1305,16 @@ function bestTeamPairing(teams, opponentCount, fixedClashPairs, currentRoundNum,
   return matches;
 }
 
+// Round cadangan di luar jam sewa yang ikut dibuat / ditampilkan.
+const ROUND_BUFFER = 4;
+// Batas round yang ditampilkan di link live: jam sewa + cadangan, kecuali host sudah menambah round sendiri.
+function viewRoundCap(session){
+  const total = session.rounds.length;
+  if(!(session.roundsPerHour>0 && session.totalHours>0)) return total;
+  if(session.roundsExtended) return total;
+  return Math.min(total, Math.round(session.roundsPerHour*session.totalHours) + ROUND_BUFFER);
+}
+
 // Aturan: maksimal 2 round main berturut-turut, setelah itu wajib istirahat.
 const MAX_PLAY_STREAK = 2;
 function trailingPlayStreak(session, id){
@@ -1729,7 +1740,11 @@ function createSchedule(){
   session.roundsPerHour = duration>0 ? Math.max(1, Math.floor(60/duration)) : 0;
   session.totalHours = parseFloat(document.getElementById('totalHours').value) || 0;
 
-  const howMany = Math.min(autoTotalRounds, SAFETY_CAP);
+  let howMany = Math.min(autoTotalRounds, SAFETY_CAP);
+  // Kalau jam sewa diisi: jadwal hanya sepanjang jam sewa + 4 round cadangan (bisa ditambah lagi lewat "Tambah" di ujung jadwal)
+  if(session.roundsPerHour>0 && session.totalHours>0){
+    howMany = Math.min(howMany, Math.round(session.roundsPerHour*session.totalHours) + ROUND_BUFFER);
+  }
   session.plannedTotalRounds = howMany;
 
   for(let r=0; r<howMany; r++){ buildOneRound(session); }
@@ -1909,6 +1924,7 @@ function confirmAddRounds(){
   const input = document.getElementById('addRoundsCount');
   const n = parseInt(input.value) || 5;
   currentSession.plannedTotalRounds = currentSession.rounds.length + n;
+  currentSession.roundsExtended = true;
   for(let i=0;i<n;i++){ buildOneRound(currentSession); }
   closeScorePicker();
   currentRoundIndex++;
@@ -2307,7 +2323,9 @@ function buildSummaryHtml(session){
       ${refreshRow}
       <div class="table-scroll"><table class="progress-table">
         <thead><tr><th class="sticky-col">Pemain</th>`;
+    const tableCap = VIEW_ONLY ? viewRoundCap(session) : rounds.length;
     rounds.forEach((_,idx)=>{
+      if(idx >= tableCap) return;
       const roundNum = idx+1;
       const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
         && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
@@ -2378,6 +2396,7 @@ function buildSummaryHtml(session){
       const isFixedPlayer = session.fixedPairMap[p.id]!==undefined;
       html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td class="sticky-col${isFixedPlayer ? ' fixed-name' : ''}">${escapeHtml(p.name)}</td>`;
       cumulativeLog.forEach((snap,i)=>{
+        if(i >= tableCap) return;
         const roundNum = i+1;
         const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
           && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
@@ -2407,16 +2426,14 @@ function buildSummaryHtml(session){
   html += `<div class="card" style="margin-top:14px;">
     <h3 style="margin-top:0; font-size:15px;">Semua Match</h3>`;
   // Link live: hanya tampilkan sampai batas checkpoint (jam sewa), dan bisa dipersempit ke match milik pemain terpilih
-  const capRounds = (VIEW_ONLY && session.roundsPerHour>0 && session.totalHours>0)
-    ? Math.min(rounds.length, Math.round(session.roundsPerHour*session.totalHours))
-    : rounds.length;
+  const capRounds = VIEW_ONLY ? viewRoundCap(session) : rounds.length;
   const onlyMine = VIEW_ONLY && viewerOnlyMine && HIGHLIGHT_PID!==null;
   if(VIEW_ONLY){
     if(HIGHLIGHT_PID!==null){
       html += `<label class="only-mine"><input type="checkbox" ${viewerOnlyMine ? 'checked' : ''} onchange="toggleOnlyMine(this.checked)"> Tampilkan match saya saja</label>`;
     }
     if(capRounds < rounds.length){
-      html += `<div class="info" style="margin:0 0 10px;">Ditampilkan sampai round ${capRounds} (batas jam sewa)</div>`;
+      html += `<div class="info" style="margin:0 0 10px;">Ditampilkan sampai round ${capRounds} (jam sewa + ${ROUND_BUFFER} round cadangan)</div>`;
     }
   }
   let matchNo = 0;
