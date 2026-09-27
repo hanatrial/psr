@@ -3,7 +3,11 @@
     "site": "padel-padel",
     "public": ".",
     "redirects": [
-      { "source": "/", "destination": "/padel.html", "type": 302 }
+      {
+        "source": "/",
+        "destination": "/padel.html",
+        "type": 302
+      }
     ],
     "cleanUrls": false,
     "ignore": [
@@ -21,7 +25,18 @@
     "headers": [
       {
         "source": "**/*.html",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/padel.html",
+        "destination": "/test.html"
       }
     ]
   }

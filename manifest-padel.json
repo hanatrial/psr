@@ -1,8 +1,8 @@
 {
   "name": "Padel Match History & Scheduler",
   "short_name": "Padel",
-  "start_url": "padel.html",
-  "scope": "padel.html",
+  "start_url": "test.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f9fbfa",
   "theme_color": "#1f4e8c",
