@@ -227,6 +227,9 @@
   }
   .all-match-title{ font-weight:800; font-size:16px; margin-bottom:2px; }
   .score-box.compact-sm{ padding:14px 0; font-size:28px; border-radius:12px; max-width:100px; }
+  .only-mine{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; margin:0 0 10px; cursor:pointer; }
+  .only-mine input{ width:18px; height:18px; }
+  .rest-round{ text-align:center; font-size:12px; font-weight:700; letter-spacing:.04em; color:var(--muted); border:1px dashed #d1d5db; border-radius:14px; padding:8px; margin-bottom:14px; }
   .refresh-row{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 8px; }
   .all-match-tag{
     display:block; text-align:center; color:#1a1d29; font-weight:800; font-size:17px;
@@ -492,6 +495,7 @@ const HISTORY_STORAGE_KEY = 'matchHistoryApp_v1';
 const VIEW_ID = new URLSearchParams(location.search).get('live'); // link "live" khusus baca
 const VIEW_ONLY = !!VIEW_ID;
 let HIGHLIGHT_PID = null; // di link live: id pemain yang ditandai kuning
+let viewerOnlyMine = false; // di link live: tampilkan hanya match milik pemain yang dipilih
 let db = { users: {}, history: {} };
 let currentUser = null;
 
@@ -2402,10 +2406,29 @@ function buildSummaryHtml(session){
   // -- all matches, every round, scrollable list --
   html += `<div class="card" style="margin-top:14px;">
     <h3 style="margin-top:0; font-size:15px;">Semua Match</h3>`;
+  // Link live: hanya tampilkan sampai batas checkpoint (jam sewa), dan bisa dipersempit ke match milik pemain terpilih
+  const capRounds = (VIEW_ONLY && session.roundsPerHour>0 && session.totalHours>0)
+    ? Math.min(rounds.length, Math.round(session.roundsPerHour*session.totalHours))
+    : rounds.length;
+  const onlyMine = VIEW_ONLY && viewerOnlyMine && HIGHLIGHT_PID!==null;
+  if(VIEW_ONLY){
+    if(HIGHLIGHT_PID!==null){
+      html += `<label class="only-mine"><input type="checkbox" ${viewerOnlyMine ? 'checked' : ''} onchange="toggleOnlyMine(this.checked)"> Tampilkan match saya saja</label>`;
+    }
+    if(capRounds < rounds.length){
+      html += `<div class="info" style="margin:0 0 10px;">Ditampilkan sampai round ${capRounds} (batas jam sewa)</div>`;
+    }
+  }
   let matchNo = 0;
   rounds.forEach((round, r)=>{
+    if(r >= capRounds) return;
+    const visible = round.matches.map((m, c)=>({ m, c })).filter(x=> !onlyMine || x.m.flat().includes(HIGHLIGHT_PID));
+    if(onlyMine && visible.length===0){
+      html += `<div class="rest-round">ROUND ${r+1} - ISTIRAHAT</div>`;
+      return;
+    }
     html += `<div class="round-group${r===liveRound ? ' live-round' : ''}">${r===liveRound ? '<div class="live-tag">● Round berjalan</div>' : ''}`;
-    round.matches.forEach((match, c)=>{
+    visible.forEach(({ m: match, c })=>{
       matchNo++;
       const [teamA, teamB] = match;
       const sc = matchScores[`${r}_${c}`];
@@ -2745,6 +2768,12 @@ function viewerKey(){ return 'padelViewerAs_' + VIEW_ID; }
 function getViewerChoice(){ try{ return localStorage.getItem(viewerKey()); }catch(e){ return null; } }
 function setViewerChoice(v){ try{ localStorage.setItem(viewerKey(), String(v)); }catch(e){} }
 let viewerPicking = false;
+function onlyMineKey(){ return 'padelViewerOnlyMine_' + VIEW_ID; }
+function toggleOnlyMine(on){
+  viewerOnlyMine = !!on;
+  try{ localStorage.setItem(onlyMineKey(), viewerOnlyMine ? '1' : '0'); }catch(e){}
+  renderViewerBody();
+}
 function pickViewer(v){ setViewerChoice(v); viewerPicking = false; renderViewerBody(); }
 function changeViewer(){ viewerPicking = true; renderViewerBody(); }
 function renderViewerBody(){
@@ -2753,6 +2782,7 @@ function renderViewerBody(){
   const choice = getViewerChoice();
   const p = players.find(x => String(x.id) === choice);
   HIGHLIGHT_PID = p ? p.id : null;
+  try{ viewerOnlyMine = localStorage.getItem(onlyMineKey()) === '1'; }catch(e){ viewerOnlyMine = false; }
 
   // Wajib pilih nama dulu: summary baru tampil setelah memilih pemain.
   if(!p || viewerPicking){
