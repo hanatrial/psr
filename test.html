@@ -2378,13 +2378,15 @@ function buildProgresMainCard(session, opts){
   const rounds = session.rounds;
   if(!cumulativeLog || cumulativeLog.length===0) return '';
 
+  const showRefresh = opts.showRefresh !== undefined ? opts.showRefresh : true;
   let refreshRow = '';
   if(!VIEW_ONLY){
     const q = scoreSchedule(session);
-    refreshRow = `<div class="refresh-row">
+    const buttons = showRefresh ? `<div class="refresh-row">
         <button type="button" class="btn secondary small" onclick="refreshSchedule()">🔄 Refresh jadwal</button>
         ${scheduleBackup ? '<button type="button" class="btn secondary small" onclick="undoRefreshSchedule()">↩ Kembali ke jadwal sebelumnya</button>' : ''}
-      </div>
+      </div>` : '';
+    refreshRow = `${buttons}
       <div class="info" style="margin:0 0 10px;">${lastPick ? 'Terbaik dari ' + lastPick.tries + ' kemungkinan · ' : ''}Partner berulang <b>${q.repeats}</b> · Menunggu 2+ round <b>${q.waits}</b> · Selisih main terbesar <b>${q.gap}</b> <span style="color:var(--muted);">(${q.allRounds ? 'seluruh jadwal' : q.window + ' round pertama sesuai jam sewa'})</span></div>`;
   }
   let html = `<div class="card" style="margin-top:14px;">
@@ -2547,7 +2549,7 @@ function buildSummaryHtml(session){
     html += `</div>`;
   }
 
-  html += buildProgresMainCard(session, { liveRound });
+  html += buildProgresMainCard(session, { liveRound, showRefresh: false });
 
   // -- all matches, every round, scrollable list --
   html += `<div class="card" style="margin-top:14px;">
