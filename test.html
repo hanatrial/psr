@@ -476,6 +476,11 @@
 
   <div class="stats-row" id="statsRow"></div>
 
+  <div id="topPlayersCard" class="card hidden" style="margin-bottom:14px;">
+    <h3 style="margin-top:0; font-size:15px;">🏅 Top 5 Pemain Paling Sering Main</h3>
+    <div id="topPlayersList"></div>
+  </div>
+
   <button class="btn" onclick="promptSessionTitle()" style="margin-bottom:14px; width:100%;">🎾 Catat Match Baru (Padel Scheduler)</button>
 
   <label style="font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:8px;">Sesi Padel Scheduler</label>
@@ -778,6 +783,36 @@ function renderHistory(){
     <div class="stat-box"><div class="num">${totalPlayers}</div><div class="label">Total Pemain</div></div>
     <div class="stat-box"><div class="num">${uniquePlayers.size}</div><div class="label">Pemain Unik</div></div>
   `;
+
+  // Top 5 pemain paling sering main: jumlah round yang benar-benar dimainkan
+  // (games-played), digabung lintas sesi berdasarkan nama (tanpa beda huruf besar/kecil).
+  const gamesByName = {};
+  Object.values(padelDb.sessions || {}).forEach(s => {
+    if(!s || s.owner !== currentUser || !s.session || !s.session.gamesPlayed) return;
+    const idToName = {};
+    (s.players || []).forEach(p => { idToName[p.id] = p.name; });
+    Object.entries(s.session.gamesPlayed).forEach(([pid, count]) => {
+      const rawName = idToName[pid];
+      if(!rawName) return;
+      const key = String(rawName).trim().toLowerCase();
+      if(!key) return;
+      if(!gamesByName[key]) gamesByName[key] = { name: rawName, total: 0 };
+      gamesByName[key].total += count;
+    });
+  });
+  const topPlayers = Object.values(gamesByName).sort((a,b)=> b.total - a.total).slice(0,5);
+  const topCard = document.getElementById('topPlayersCard');
+  if(topPlayers.length===0){
+    topCard.classList.add('hidden');
+  } else {
+    topCard.classList.remove('hidden');
+    document.getElementById('topPlayersList').innerHTML = topPlayers.map((p, i)=> `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; ${i<topPlayers.length-1 ? 'border-bottom:1px solid var(--border);' : ''}">
+        <span>${i+1}. ${escapeHtml(p.name)}</span>
+        <span style="font-weight:700; color:var(--muted);">${p.total} round</span>
+      </div>
+    `).join('');
+  }
 
   const historyList = document.getElementById('historyList');
   if(list.length===0){
