@@ -784,23 +784,20 @@ function renderHistory(){
     <div class="stat-box"><div class="num">${uniquePlayers.size}</div><div class="label">Pemain Unik</div></div>
   `;
 
-  // Top 5 pemain paling sering main: jumlah round yang benar-benar dimainkan
-  // (games-played), digabung lintas sesi berdasarkan nama (tanpa beda huruf besar/kecil).
-  const gamesByName = {};
+  // Top 5 pemain paling sering main: jumlah sesi/match yang dia ikuti,
+  // digabung lintas sesi berdasarkan nama (tanpa beda huruf besar/kecil).
+  const matchesByName = {};
   Object.values(padelDb.sessions || {}).forEach(s => {
-    if(!s || s.owner !== currentUser || !s.session || !s.session.gamesPlayed) return;
-    const idToName = {};
-    (s.players || []).forEach(p => { idToName[p.id] = p.name; });
-    Object.entries(s.session.gamesPlayed).forEach(([pid, count]) => {
-      const rawName = idToName[pid];
-      if(!rawName) return;
-      const key = String(rawName).trim().toLowerCase();
+    if(!s || s.owner !== currentUser) return;
+    (s.players || []).forEach(p => {
+      const rawName = p.name;
+      const key = String(rawName || '').trim().toLowerCase();
       if(!key) return;
-      if(!gamesByName[key]) gamesByName[key] = { name: rawName, total: 0 };
-      gamesByName[key].total += count;
+      if(!matchesByName[key]) matchesByName[key] = { name: rawName, total: 0 };
+      matchesByName[key].total += 1;
     });
   });
-  const topPlayers = Object.values(gamesByName).sort((a,b)=> b.total - a.total).slice(0,5);
+  const topPlayers = Object.values(matchesByName).sort((a,b)=> b.total - a.total).slice(0,5);
   const topCard = document.getElementById('topPlayersCard');
   if(topPlayers.length===0){
     topCard.classList.add('hidden');
@@ -809,7 +806,7 @@ function renderHistory(){
     document.getElementById('topPlayersList').innerHTML = topPlayers.map((p, i)=> `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; ${i<topPlayers.length-1 ? 'border-bottom:1px solid var(--border);' : ''}">
         <span>${i+1}. ${escapeHtml(p.name)}</span>
-        <span style="font-weight:700; color:var(--muted);">${p.total} round</span>
+        <span style="font-weight:700; color:var(--muted);">${p.total} match</span>
       </div>
     `).join('');
   }
