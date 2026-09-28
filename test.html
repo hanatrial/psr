@@ -1854,6 +1854,32 @@ function generate(){
   currentRoundIndex = 0;
   summaryVisible = false;
   document.getElementById('resumeBtn').classList.remove('hidden');
+  saveState();
+  showScheduleCheckModal();
+}
+
+// Popup cek Progres Main (bisa refresh jadwal) yang tampil sebelum masuk ke
+// halaman pertandingan — supaya host bisa mastiin pembagian main sudah adil
+// dulu sebelum lanjut main. Tabel yang sama juga muncul di summary tapi
+// di situ sifatnya cuma info (FYI), bukan titik keputusan.
+let scheduleCheckModalOpen = false;
+function renderScheduleCheckModal(){
+  const root = document.getElementById('padelModalRoot');
+  root.innerHTML = `<div class="modal-overlay">
+    <div class="modal-box" style="max-width:900px;">
+      <p class="modal-title">Cek Pembagian Main Dulu</p>
+      <div style="max-height:60vh; overflow-y:auto;">${buildProgresMainCard(currentSession)}</div>
+      <button class="btn" style="width:100%; margin-top:12px;" onclick="closeScheduleCheckModalAndPlay()">Lanjut ke Pertandingan</button>
+    </div>
+  </div>`;
+}
+function showScheduleCheckModal(){
+  scheduleCheckModalOpen = true;
+  renderScheduleCheckModal();
+}
+function closeScheduleCheckModalAndPlay(){
+  scheduleCheckModalOpen = false;
+  document.getElementById('padelModalRoot').innerHTML = '';
   showRoundPageOnly();
   saveState();
 }
@@ -1902,6 +1928,10 @@ let scheduleBackup = null; // jadwal sebelum refresh terakhir (hanya di memori, 
 let lastPick = null;       // info refresh terakhir
 
 function rerenderAfterScheduleChange(){
+  if(scheduleCheckModalOpen){
+    renderScheduleCheckModal();
+    return;
+  }
   if(summaryVisible){
     document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
   }
@@ -2344,6 +2374,130 @@ function computeStats(session){
   return stats;
 }
 
+// Kartu "Progres Main" (tabel kumulatif jumlah main per pemain per round), dipakai
+// baik di summary panel (host & live view) maupun di popup cek jadwal sebelum main.
+// opts.liveRound: index round yang sedang live disorot (-1/undefined kalau tidak perlu).
+function buildProgresMainCard(session, opts){
+  opts = opts || {};
+  const liveRound = opts.liveRound !== undefined ? opts.liveRound : -1;
+  const cumulativeLog = session.cumulativeLog;
+  const rounds = session.rounds;
+  if(!cumulativeLog || cumulativeLog.length===0) return '';
+
+  let refreshRow = '';
+  if(!VIEW_ONLY){
+    const q = scoreSchedule(session);
+    refreshRow = `<div class="refresh-row">
+        <button type="button" class="btn secondary small" onclick="refreshSchedule()">🔄 Refresh jadwal</button>
+        ${scheduleBackup ? '<button type="button" class="btn secondary small" onclick="undoRefreshSchedule()">↩ Kembali ke jadwal sebelumnya</button>' : ''}
+      </div>
+      <div class="info" style="margin:0 0 10px;">${lastPick ? 'Terbaik dari ' + lastPick.tries + ' kemungkinan · ' : ''}Partner berulang <b>${q.repeats}</b> · Menunggu 2+ round <b>${q.waits}</b> · Selisih main terbesar <b>${q.gap}</b> <span style="color:var(--muted);">(${q.allRounds ? 'seluruh jadwal' : q.window + ' round pertama sesuai jam sewa'})</span></div>`;
+  }
+  let html = `<div class="card" style="margin-top:14px;">
+    <h3 style="margin-top:0; font-size:15px;">Progres Main (kumulatif per round)</h3>
+    ${refreshRow}
+    <div class="table-scroll"><table class="progress-table">
+      <thead><tr><th class="sticky-col">Pemain</th>`;
+  const tableCap = VIEW_ONLY ? viewRoundCap(session) : rounds.length;
+  rounds.forEach((_,idx)=>{
+    if(idx >= tableCap) return;
+    const roundNum = idx+1;
+    const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
+      && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
+    const liveCol = idx===liveRound ? ' live-col' : '';
+    html += isCheckpoint
+      ? `<th class="checkpoint-col${liveCol}">R${roundNum}<br><span class="checkpoint-tag">⏱${roundNum/session.roundsPerHour}j</span></th>`
+      : `<th class="${liveCol.trim()}">R${roundNum}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  // Pasangan (non-fixed) yang main bareng untuk ke-2 kali dst diwarnai; tiap pasangan
+  // berulang dapat warnanya sendiri dari palet REPEAT_COLORS (sudah divalidasi jauh
+  // dari merah / hijau / abu / kuning / pink yang dipakai di halaman ini).
+  const REPEAT_COLOR_COUNT = 4;
+  const repeatPlayersByRound = rounds.map(()=> new Map()); // playerId -> pairKey
+  const runningPartnerCount = {};
+  const pairColorIndex = {};
+  let nextColorIdx = 0;
+  rounds.forEach((round, r)=>{
+    round.matches.forEach(([teamA, teamB])=>{
+      [teamA, teamB].forEach(team=>{
+        if(isFixedTeam(team)) return;
+        const key = pairKey(team[0], team[1]);
+        runningPartnerCount[key] = (runningPartnerCount[key]||0) + 1;
+        if(runningPartnerCount[key] >= 2){
+          if(pairColorIndex[key]===undefined){
+            pairColorIndex[key] = nextColorIdx % REPEAT_COLOR_COUNT;
+            nextColorIdx++;
+          }
+          team.forEach(id=> repeatPlayersByRound[r].set(id, key));
+        }
+      });
+    });
+  });
+
+  // Hijau "main 2 round berturut-turut" hanya ditampilkan untuk kombinasi 6-10 pemain
+  // per lapangan (1c 6-10p, 2c 12-20p, 3c 18-30p, 4c 24-40p).
+  const nCourts = session.courtsCount;
+  const showPlayStreak = nCourts>0 && players.length >= 6*nCourts && players.length <= 10*nCourts;
+
+  players.forEach(p=>{
+    // find rounds where this player sat out 2+ times in a row, to flag in red
+    const sat = rounds.map(r => r.sitting.includes(p.id));
+    const warnIdx = new Array(rounds.length).fill(false);
+    let streak = 0;
+    sat.forEach((isSitting, i)=>{
+      if(isSitting){
+        streak++;
+        if(streak>=2){ warnIdx[i] = true; warnIdx[i-1] = true; }
+      } else {
+        streak = 0;
+      }
+    });
+    // main 2 round berturut-turut atau lebih -> hijau
+    const playIdx = new Array(rounds.length).fill(false);
+    if(showPlayStreak){
+      let playStreak = 0;
+      sat.forEach((isSitting, i)=>{
+        if(!isSitting){
+          playStreak++;
+          if(playStreak>=2){ playIdx[i] = true; playIdx[i-1] = true; }
+        } else {
+          playStreak = 0;
+        }
+      });
+    }
+
+    const isFixedPlayer = session.fixedPairMap[p.id]!==undefined;
+    html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td class="sticky-col${isFixedPlayer ? ' fixed-name' : ''}">${escapeHtml(p.name)}</td>`;
+    cumulativeLog.forEach((snap,i)=>{
+      if(i >= tableCap) return;
+      const roundNum = i+1;
+      const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
+        && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
+      const classes = [];
+      const repeatKey = repeatPlayersByRound[i].get(p.id);
+      if(warnIdx[i]) classes.push('rest-warn');
+      else {
+        if(playIdx[i]) classes.push('play-streak');
+      }
+      if(isCheckpoint) classes.push('checkpoint-col');
+      const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
+      const num = (repeatKey!==undefined && !warnIdx[i])
+        ? `<span class="rp rp-${pairColorIndex[repeatKey]}">${snap[p.id]}</span>`
+        : snap[p.id];
+      html += `<td${cls}>${num}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table></div>
+    <div class="info" style="margin-top:8px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#fecaca;border:1px solid #dc2626;vertical-align:-1px;"></span> Merah berurutan = menunggu 2 round</div>
+    ${showPlayStreak ? '<div class="info" style="margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#bbf7d0;border:1px solid #15803d;vertical-align:-1px;"></span> Hijau berurutan = main 2 round berturut-turut</div>' : ''}
+    <div class="info" style="margin-top:4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#7dd3fc;vertical-align:-2px;"></span> Lingkaran warna = partner yang sama, untuk ke-2 kali dst</div>
+  </div>`;
+  return html;
+}
+
 // Combined summary panel: times-played board, score/W-L-T board (if any score
 // entered), and the cumulative per-round progress table. Shown/hidden via the
 // "Lihat Summary" toggle on every round page.
@@ -2399,120 +2553,7 @@ function buildSummaryHtml(session){
     html += `</div>`;
   }
 
-  // -- cumulative progress table --
-  if(cumulativeLog && cumulativeLog.length>0){
-    let refreshRow = '';
-    if(!VIEW_ONLY){
-      const q = scoreSchedule(session);
-      refreshRow = `<div class="refresh-row">
-          <button type="button" class="btn secondary small" onclick="refreshSchedule()">🔄 Refresh jadwal</button>
-          ${scheduleBackup ? '<button type="button" class="btn secondary small" onclick="undoRefreshSchedule()">↩ Kembali ke jadwal sebelumnya</button>' : ''}
-        </div>
-        <div class="info" style="margin:0 0 10px;">${lastPick ? 'Terbaik dari ' + lastPick.tries + ' kemungkinan · ' : ''}Partner berulang <b>${q.repeats}</b> · Menunggu 2+ round <b>${q.waits}</b> · Selisih main terbesar <b>${q.gap}</b> <span style="color:var(--muted);">(${q.allRounds ? 'seluruh jadwal' : q.window + ' round pertama sesuai jam sewa'})</span></div>`;
-    }
-    html += `<div class="card" style="margin-top:14px;">
-      <h3 style="margin-top:0; font-size:15px;">Progres Main (kumulatif per round)</h3>
-      ${refreshRow}
-      <div class="table-scroll"><table class="progress-table">
-        <thead><tr><th class="sticky-col">Pemain</th>`;
-    const tableCap = VIEW_ONLY ? viewRoundCap(session) : rounds.length;
-    rounds.forEach((_,idx)=>{
-      if(idx >= tableCap) return;
-      const roundNum = idx+1;
-      const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
-        && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
-      const liveCol = idx===liveRound ? ' live-col' : '';
-      html += isCheckpoint
-        ? `<th class="checkpoint-col${liveCol}">R${roundNum}<br><span class="checkpoint-tag">⏱${roundNum/session.roundsPerHour}j</span></th>`
-        : `<th class="${liveCol.trim()}">R${roundNum}</th>`;
-    });
-    html += `</tr></thead><tbody>`;
-
-    // Pasangan (non-fixed) yang main bareng untuk ke-2 kali dst diwarnai; tiap pasangan
-    // berulang dapat warnanya sendiri dari palet REPEAT_COLORS (sudah divalidasi jauh
-    // dari merah / hijau / abu / kuning / pink yang dipakai di halaman ini).
-    const REPEAT_COLOR_COUNT = 4;
-    const repeatPlayersByRound = rounds.map(()=> new Map()); // playerId -> pairKey
-    const runningPartnerCount = {};
-    const pairColorIndex = {};
-    let nextColorIdx = 0;
-    rounds.forEach((round, r)=>{
-      round.matches.forEach(([teamA, teamB])=>{
-        [teamA, teamB].forEach(team=>{
-          if(isFixedTeam(team)) return;
-          const key = pairKey(team[0], team[1]);
-          runningPartnerCount[key] = (runningPartnerCount[key]||0) + 1;
-          if(runningPartnerCount[key] >= 2){
-            if(pairColorIndex[key]===undefined){
-              pairColorIndex[key] = nextColorIdx % REPEAT_COLOR_COUNT;
-              nextColorIdx++;
-            }
-            team.forEach(id=> repeatPlayersByRound[r].set(id, key));
-          }
-        });
-      });
-    });
-
-    // Hijau "main 2 round berturut-turut" hanya ditampilkan untuk kombinasi 6-10 pemain
-    // per lapangan (1c 6-10p, 2c 12-20p, 3c 18-30p, 4c 24-40p).
-    const nCourts = session.courtsCount;
-    const showPlayStreak = nCourts>0 && players.length >= 6*nCourts && players.length <= 10*nCourts;
-
-    players.forEach(p=>{
-      // find rounds where this player sat out 2+ times in a row, to flag in red
-      const sat = rounds.map(r => r.sitting.includes(p.id));
-      const warnIdx = new Array(rounds.length).fill(false);
-      let streak = 0;
-      sat.forEach((isSitting, i)=>{
-        if(isSitting){
-          streak++;
-          if(streak>=2){ warnIdx[i] = true; warnIdx[i-1] = true; }
-        } else {
-          streak = 0;
-        }
-      });
-      // main 2 round berturut-turut atau lebih -> hijau
-      const playIdx = new Array(rounds.length).fill(false);
-      if(showPlayStreak){
-        let playStreak = 0;
-        sat.forEach((isSitting, i)=>{
-          if(!isSitting){
-            playStreak++;
-            if(playStreak>=2){ playIdx[i] = true; playIdx[i-1] = true; }
-          } else {
-            playStreak = 0;
-          }
-        });
-      }
-
-      const isFixedPlayer = session.fixedPairMap[p.id]!==undefined;
-      html += `<tr${p.id===HIGHLIGHT_PID ? ' class="my-row"' : ''}><td class="sticky-col${isFixedPlayer ? ' fixed-name' : ''}">${escapeHtml(p.name)}</td>`;
-      cumulativeLog.forEach((snap,i)=>{
-        if(i >= tableCap) return;
-        const roundNum = i+1;
-        const isCheckpoint = session.roundsPerHour>0 && roundNum % session.roundsPerHour === 0
-          && (!session.totalHours || roundNum <= session.roundsPerHour*session.totalHours);
-        const classes = [];
-        const repeatKey = repeatPlayersByRound[i].get(p.id);
-        if(warnIdx[i]) classes.push('rest-warn');
-        else {
-          if(playIdx[i]) classes.push('play-streak');
-        }
-        if(isCheckpoint) classes.push('checkpoint-col');
-        const cls = classes.length ? ` class="${classes.join(' ')}"` : '';
-        const num = (repeatKey!==undefined && !warnIdx[i])
-          ? `<span class="rp rp-${pairColorIndex[repeatKey]}">${snap[p.id]}</span>`
-          : snap[p.id];
-        html += `<td${cls}>${num}</td>`;
-      });
-      html += `</tr>`;
-    });
-    html += `</tbody></table></div>
-      <div class="info" style="margin-top:8px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#fecaca;border:1px solid #dc2626;vertical-align:-1px;"></span> Merah berurutan = menunggu 2 round</div>
-      ${showPlayStreak ? '<div class="info" style="margin-top:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#bbf7d0;border:1px solid #15803d;vertical-align:-1px;"></span> Hijau berurutan = main 2 round berturut-turut</div>' : ''}
-      <div class="info" style="margin-top:4px;"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#7dd3fc;vertical-align:-2px;"></span> Lingkaran warna = partner yang sama, untuk ke-2 kali dst</div>
-    </div>`;
-  }
+  html += buildProgresMainCard(session, { liveRound });
 
   // -- all matches, every round, scrollable list --
   html += `<div class="card" style="margin-top:14px;">
