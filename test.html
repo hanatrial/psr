@@ -485,9 +485,6 @@
 
   <label style="font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:8px;">Sesi Padel Scheduler</label>
   <div id="padelSessionList" style="margin-bottom:18px;"></div>
-
-  <label style="font-size:13px; font-weight:600; color:var(--muted); display:block; margin-bottom:8px;">History Match</label>
-  <div id="historyList"></div>
 </div>
 
 <div id="padelApp" class="hidden">
@@ -749,22 +746,7 @@ function confirmSessionTitle(){
   openPadelApp();
 }
 
-function deleteMatch(id){
-  if(!confirm('Hapus history match ini?')) return;
-  db.history[currentUser] = db.history[currentUser].filter(m=>m.id!==id);
-  saveDb();
-  renderHistory();
-}
-
-function resultLabel(r){
-  if(r==='win') return 'Menang';
-  if(r==='lose') return 'Kalah';
-  return 'Seri';
-}
-
 function renderHistory(){
-  const list = (db.history[currentUser] || []).slice().sort((a,b)=> b.id - a.id);
-
   // Total pemain unik (tanpa beda huruf besar/kecil) dari semua sesi milik akun ini
   const uniquePlayers = new Set();
   let totalPlayers = 0;
@@ -810,26 +792,6 @@ function renderHistory(){
       </div>
     `).join('');
   }
-
-  const historyList = document.getElementById('historyList');
-  if(list.length===0){
-    historyList.innerHTML = '<div class="empty-state">Belum ada history match. Klik "Catat Match Baru" buat mulai.</div>';
-    return;
-  }
-  historyList.innerHTML = list.map(m => `
-    <div class="history-item">
-      <div class="top">
-        <div>
-          <div class="score">${m.scoreUs} - ${m.scoreThem}</div>
-          <div class="opponent">vs ${escapeHtml(m.opponent)}</div>
-        </div>
-        <span class="chip ${m.result}">${resultLabel(m.result)}</span>
-      </div>
-      <div class="date">${m.date}</div>
-      ${m.notes ? `<div class="notes">${escapeHtml(m.notes)}</div>` : ''}
-      <button class="btn danger small" style="margin-top:8px;" onclick="deleteMatch(${m.id})">Hapus</button>
-    </div>
-  `).join('');
 }
 
 
