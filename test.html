@@ -2066,19 +2066,45 @@ function fixedTeamIndex(team){
 }
 
 function openScorePicker(r, c, team){
+  if(VIEW_ONLY) return;
   const target = getScoreTarget().target;
   const root = document.getElementById('padelModalRoot');
   let buttons = '';
   for(let v=0; v<=target; v++){
     buttons += `<button onclick="setScore(${r},${c},'${team}',${v})">${v}</button>`;
   }
+  const key = `${r}_${c}`;
+  const hasScore = matchScores[key] && matchScores[key].A!==null && matchScores[key].A!==undefined;
+  const resetBtn = hasScore
+    ? `<button class="btn danger small" style="width:100%; margin-top:8px;" onclick="resetScore(${r},${c})">↺ Reset skor</button>`
+    : '';
   root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this) closeScorePicker()">
     <div class="modal-box">
       <p class="modal-title">Skor tim ${team==='A' ? '1' : '2'} (total ${target})</p>
       <div class="modal-grid">${buttons}</div>
+      ${resetBtn}
       <button class="modal-cancel" onclick="closeScorePicker()">Batal</button>
     </div>
   </div>`;
+}
+
+function resetScore(r, c){
+  if(VIEW_ONLY) return;
+  if(!confirm('Reset skor match ini?')) return;
+  const key = `${r}_${c}`;
+  delete matchScores[key];
+
+  const btnA = document.getElementById(`scoreBtn_${r}_${c}_A`);
+  const btnB = document.getElementById(`scoreBtn_${r}_${c}_B`);
+  if(btnA){ btnA.textContent = '–'; btnA.classList.remove('filled'); }
+  if(btnB){ btnB.textContent = '–'; btnB.classList.remove('filled'); }
+
+  closeScorePicker();
+
+  if(summaryVisible){
+    document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
+  }
+  saveState();
 }
 
 function closeScorePicker(){
