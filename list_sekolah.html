@@ -64,6 +64,8 @@
   .sheet .sn{font-size:17px;font-weight:800;margin:6px 0 2px;color:var(--navy)}
   .sheet .sk{font-size:12.5px;color:var(--muted);margin-bottom:18px}
   .sheet .big{font-size:20px;font-weight:800;text-align:center;margin-bottom:14px}
+  .maps{display:block;text-align:center;text-decoration:none;margin:0 0 14px;padding:13px;border-radius:14px;background:#e8f0fb;color:var(--navy);font-weight:700;font-size:15px;border:1.5px solid #c7d6ee}
+  .maps:active{background:#d6e4f7}
   .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .btn{padding:15px;border:none;border-radius:14px;font-size:16px;font-weight:800;color:#fff;cursor:pointer;font-family:'Poppins',sans-serif}
   .btn.yes{background:var(--green)}
@@ -116,6 +118,7 @@
     <div class="q">Sudah divisit?</div>
     <div class="sn" id="sheetName"></div>
     <div class="sk" id="sheetKab"></div>
+    <a class="maps" id="btnMaps" href="#" target="_blank" rel="noopener">Buka di Google Maps (rute &amp; jarak)</a>
     <div class="btns">
       <button type="button" class="btn yes" id="btnYes">Ya</button>
       <button type="button" class="btn no" id="btnNo">Tidak</button>
@@ -272,6 +275,9 @@
     sheetKab.textContent = r.kab;
     sheetErr.textContent = '';
     btnYes.disabled = btnNo.disabled = false;
+    // link rute: titik awal otomatis lokasi pengguna sekarang, jadi jarak & waktu langsung terlihat di Maps
+    const place = r.sek + ', ' + (r.kec ? 'Kec. ' + r.kec + ', ' : '') + (/^kota\s/i.test(r.kab) ? r.kab : 'Kab. ' + r.kab) + ', ' + (r.prov === 'Gorontalo' ? 'Gorontalo' : 'Sulawesi Selatan');
+    document.getElementById('btnMaps').href = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(place) + '&travelmode=driving';
     overlay.classList.add('show');
   }
   function closeSheet(){ overlay.classList.remove('show'); activeRow = null; }
