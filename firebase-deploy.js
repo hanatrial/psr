@@ -129,9 +129,18 @@ function konfigurasi() {
     return;
   }
   if (!TOKEN) throw new Error("token kosong — pakai: node firebase-deploy.js <token>");
+  TOKEN = String(TOKEN).replace(/\s+/g, "");   // buang spasi / baris baru yang ikut ter-paste
   TOKEN = await accessToken(TOKEN);
   H.Authorization = `Bearer ${TOKEN}`;
-  console.log("token Firebase: OK");
+  // Cek token ke Google: masih berlaku? scope-nya cukup? (token terpotong / kedaluwarsa ketahuan di sini)
+  try {
+    const ti = await fetch("https://oauth2.googleapis.com/tokeninfo?access_token=" + encodeURIComponent(TOKEN));
+    const tj = await ti.json().catch(() => ({}));
+    if (!ti.ok) throw new Error("Google menolak token (" + (tj.error_description || tj.error || ti.status) + "). Kemungkinan token terpotong saat disalin/paste, atau sudah lewat 1 jam. Ambil token baru dan jalankan lewat: read -s T; node firebase-deploy.js \"$T\"");
+    const sc = String(tj.scope || "");
+    if (!/firebase\.hosting|cloud-platform/.test(sc)) throw new Error("scope token kurang: " + sc + " (perlu firebase.hosting dan cloud-platform)");
+    console.log(`token Firebase: OK (${(tj.email || "akun tanpa email")}, sisa ${Math.round((tj.expires_in || 0) / 60)} menit)`);
+  } catch (e) { throw e; }
 
   const files = daftarBerkas();
   if (!files.length) throw new Error("tidak ada berkas untuk di-deploy");
