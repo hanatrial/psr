@@ -2380,6 +2380,7 @@ try{ if(localStorage.getItem('padelRankMode') === 'win') rankMode = 'win'; }catc
 function setRankMode(m){
   rankMode = (m === 'win') ? 'win' : 'poin';
   try{ localStorage.setItem('padelRankMode', rankMode); }catch(e){}
+  if(VIEW_ONLY && typeof renderViewerBody === 'function'){ renderViewerBody(); return; }   // link live (penonton)
   const panel = document.getElementById('summaryPanel');
   if(panel && currentSession) panel.innerHTML = buildSummaryHtml(currentSession);
 }
