@@ -2164,6 +2164,16 @@ function findPlayerLocation(round, playerId){
   return null;
 }
 
+// Cakupan tukar pemain: 'from' = mulai round yang diketuk ke depan (round sebelumnya, termasuk skornya, tidak disentuh);
+// 'all' = seluruh jadwal (round yang sudah dimainkan ikut bertukar, termasuk win/kalah/poinnya).
+let swapScope = 'from';
+function setSwapScope(roundIdx, playerId, scope){ swapScope = scope; openPlayerSwapModal(roundIdx, playerId); }
+function hasScoreFromRound(roundIdx){
+  return currentSession.rounds.some((round, r)=> r >= roundIdx && round.matches.some((m, c)=>{
+    const sc = matchScores[`${r}_${c}`];
+    return sc && ((sc.A!==null && sc.A!==undefined) || (sc.B!==null && sc.B!==undefined));
+  }));
+}
 function openPlayerSwapModal(roundIdx, playerId){
   if(VIEW_ONLY) return;
   if(currentSession.fixedPairMap && currentSession.fixedPairMap[playerId]!==undefined){
@@ -2174,11 +2184,22 @@ function openPlayerSwapModal(roundIdx, playerId){
     p.id!==playerId && (!currentSession.fixedPairMap || currentSession.fixedPairMap[p.id]===undefined)
   );
   if(otherPlayers.length===0){ alert('Gak ada pemain bebas lain buat ditukar.'); return; }
+  const scopeBtn = (sc, label)=>`<button type="button" class="${swapScope===sc?'on':''}" onclick="setSwapScope(${roundIdx},${playerId},'${sc}')">${label}</button>`;
+  const info = swapScope === 'from'
+    ? `Round 1-${roundIdx} <b>tidak berubah</b> (skor dan peringkatnya tetap milik pemain semula). Yang bertukar: round ${roundIdx+1} sampai terakhir.`
+    : `<b>Seluruh jadwal</b> bertukar, termasuk round yang sudah dimainkan: skor, win, kalah, dan poinnya ikut pindah ke pemain pengganti.`;
+  const warnScore = hasScoreFromRound(roundIdx)
+    ? `<div class="info" style="margin:6px 0 10px; color:#b45309;">Skor yang sudah terisi di round ${roundIdx+1} dan sesudahnya ikut pindah ke pemain pengganti.</div>` : '';
 
   const root = document.getElementById('padelModalRoot');
   root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this) closeScorePicker()">
     <div class="modal-box">
-      <p class="modal-title">Tukar ${escapeHtml(nameOf(playerId))} dengan siapa? (di seluruh jadwal)</p>
+      <p class="modal-title">Tukar ${escapeHtml(nameOf(playerId))} dengan siapa?</p>
+      <div class="rank-toggle" role="group" aria-label="Cakupan tukar">
+        ${scopeBtn('from', 'Mulai round ' + (roundIdx+1))}${scopeBtn('all', 'Seluruh jadwal')}
+      </div>
+      <div class="info" style="margin:0 0 6px;">${info}</div>
+      ${warnScore}
       ${otherPlayers.map(p=>`<button class="btn secondary" style="width:100%; margin-bottom:8px; text-align:left;" onclick="swapPlayerInRound(${roundIdx},${playerId},${p.id})">${escapeHtml(p.name)}</button>`).join('')}
       <button class="modal-cancel" onclick="closeScorePicker()">Batal</button>
     </div>
@@ -2191,8 +2212,12 @@ function openPlayerSwapModal(roundIdx, playerId){
 // never changes the underlying pattern of who played when, with whom, or
 // against whom, so it can never break gap, rest-streak, or partner-variety
 // fairness — there's nothing to warn about.
-function swapPlayerInRound(roundIdxIgnored, oldId, newId){
-  currentSession.rounds.forEach(round=>{
+function swapPlayerInRound(roundIdx, oldId, newId){
+  // Cakupan 'from': hanya round >= roundIdx; 'all': semua round (perilaku lama).
+  const startR = swapScope === 'all' ? 0 : roundIdx;
+  const before = (typeof scoreSchedule === 'function') ? scoreSchedule(currentSession) : null;
+  currentSession.rounds.forEach((round, r)=>{
+    if(r < startR) return;
     round.matches.forEach(([teamA, teamB])=>{
       [teamA, teamB].forEach(team=>{
         team.forEach((id,i)=>{
@@ -2207,8 +2232,16 @@ function swapPlayerInRound(roundIdxIgnored, oldId, newId){
     });
   });
   recalculateFromRounds(currentSession);
+  // Peringatan keadilan jadwal: hanya kalau tukar sebagian round bikin partner berulang / menunggu 2+ round bertambah
+  let warn = '';
+  if(before && startR > 0){
+    const after = scoreSchedule(currentSession);
+    if(after.repeats > before.repeats) warn += `\n• Partner berulang naik dari ${before.repeats} jadi ${after.repeats}`;
+    if(after.waits > before.waits) warn += `\n• Menunggu 2+ round naik dari ${before.waits} jadi ${after.waits}`;
+  }
 
   closeScorePicker();
+  if(warn) alert('Jadwal sudah ditukar mulai round ' + (roundIdx+1) + '. Catatan keadilan jadwal:' + warn + '\n\nBisa dikembalikan dengan menukar lagi pemain yang sama.');
   renderRoundPage();
   if(summaryVisible){
     document.getElementById('summaryPanel').innerHTML = buildSummaryHtml(currentSession);
